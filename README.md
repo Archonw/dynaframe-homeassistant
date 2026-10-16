@@ -60,6 +60,12 @@ and contains transitions, slide duration, video audio, mute, overlays, system in
 | --- | --- |
 | Add newly discovered frames automatically | Every Dynaframe found on the network is set up without confirmation. Deleted frames are moved to *Ignored* so they do not come back. Applies to all frames. |
 
+## Matching theme
+
+Want your dashboard to look like the Dynaframe web UI? Install the **Dynaframe** theme from
+[Archonw Themes](https://github.com/Archonw/ha-themes) (HACS → Custom repositories, type
+**Theme**).
+
 ## Notes
 
 - The integration uses the frame's local web API (port 80) and polls every 10 seconds.
@@ -85,6 +91,8 @@ und eigener Dashboard-Karte, ohne MQTT und ohne Cloud.
 **Karte:** Dashboard bearbeiten → *Karte hinzufügen* → „Dynaframe“. Unter dem
 Lautstärkeregler klappt das Menü **Einstellungen** auf (Überblendung, Anzeigedauer,
 Video-Ton, Stumm, Overlays, Systeminfos, Neustart).
+
+**Passendes Theme:** Das Theme „Dynaframe“ aus [Archonw Themes](https://github.com/Archonw/ha-themes) lässt dein Dashboard wie die Dynaframe-Oberfläche aussehen.
 
 **Automatisch hinzufügen:** In den Optionen der Integration lässt sich einschalten, dass neu
 gefundene Frames ohne Bestätigung eingerichtet werden.
