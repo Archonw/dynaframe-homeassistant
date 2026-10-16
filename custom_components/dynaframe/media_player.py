@@ -157,6 +157,7 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
             "item_count": status.get("totalItems"),
             "slide_duration": self.coordinator.data.slideshow.get("durationSeconds"),
             "active_playlists": [p["name"] for p in self.coordinator.data.active_playlists],
+            "pending_playlists": self.coordinator.pending_playlists,
             "host": self.coordinator.api.host,
         }
 
@@ -171,10 +172,11 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
             return
         # Stopped: restart whatever was selected last.
         selection = await self.coordinator.api.get_playback_selection()
-        ids = (selection.get("quickMixState") or {}).get("enabledSavedPlaylistIds")
-        if not ids and self.coordinator.data.user_playlists:
-            ids = [self.coordinator.data.user_playlists[0]["id"]]
-        await self._run(self.coordinator.api.play_playlists(ids or [], "Home Assistant"))
+        ids = (selection.get("quickMixState") or {}).get("enabledSavedPlaylistIds") or []
+        by_id = {p["id"]: p for p in self.coordinator.data.user_playlists}
+        chosen = [by_id[i] for i in ids if i in by_id] or self.coordinator.data.user_playlists[:1]
+        if chosen:
+            self.coordinator.start_playlists(chosen)
 
     async def async_media_pause(self) -> None:
         await self._run(self.coordinator.api.pause())
@@ -218,17 +220,10 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
                     "available": ", ".join(by_name) or "-",
                 },
             )
-        chosen = [by_name[name] for name in dict.fromkeys(playlists)]
-        await self._run(
-            self.coordinator.api.play_playlists(
-                [p["id"] for p in chosen], " + ".join(p["name"] for p in chosen)
-            )
-        )
+        self.coordinator.start_playlists([by_name[name] for name in dict.fromkeys(playlists)])
 
     async def async_select_source(self, source: str) -> None:
         playlist = next(
             p for p in self.coordinator.data.user_playlists if p["name"] == source
         )
-        await self._run(
-            self.coordinator.api.play_playlists([playlist["id"]], playlist["name"])
-        )
+        self.coordinator.start_playlists([playlist])

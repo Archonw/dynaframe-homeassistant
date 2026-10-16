@@ -44,14 +44,16 @@ class PlaylistSelect(DynaframeEntity, SelectEntity):
     @property
     def extra_state_attributes(self) -> dict[str, list[str]]:
         # The select shows one playlist; a mix of several is listed here.
-        return {"active_playlists": [p["name"] for p in self.coordinator.data.active_playlists]}
+        return {
+            "active_playlists": [p["name"] for p in self.coordinator.data.active_playlists],
+            "pending_playlists": self.coordinator.pending_playlists,
+        }
 
     async def async_select_option(self, option: str) -> None:
         playlist = next(
             p for p in self.coordinator.data.user_playlists if p["name"] == option
         )
-        await self.coordinator.api.play_playlists([playlist["id"]], playlist["name"])
-        await self.coordinator.async_request_refresh()
+        self.coordinator.start_playlists([playlist])
 
 
 class TransitionSelect(DynaframeEntity, SelectEntity):

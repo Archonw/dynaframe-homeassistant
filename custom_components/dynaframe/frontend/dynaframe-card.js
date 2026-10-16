@@ -8,7 +8,7 @@
  *   show_preview: true   # optional
  */
 
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.1.1";
 
 const t = (hass, de, en) => ((hass?.locale?.language || hass?.language || "en").startsWith("de") ? de : en);
 
@@ -557,9 +557,12 @@ class DynaframeCard extends HTMLElement {
     const plLabel = root.querySelector(".pl-label");
     if (plLabel) {
       const active = this._activePlaylists();
-      plLabel.textContent = active.length
-        ? active.join(" + ")
-        : t(hass, "Wiedergabeliste wählen", "Choose playlist");
+      const pending = plEntity?.attributes.pending_playlists || [];
+      plLabel.textContent = pending.length
+        ? t(hass, `Wird zusammengestellt … (${pending.join(" + ")})`, `Assembling … (${pending.join(" + ")})`)
+        : active.length
+          ? active.join(" + ")
+          : t(hass, "Wiedergabeliste wählen", "Choose playlist");
       plLabel.title = plLabel.textContent;
     }
     this._renderPlaylistList(false);

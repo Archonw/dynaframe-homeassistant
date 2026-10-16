@@ -94,6 +94,8 @@ class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):
         )
         self.api = api
         self._polls = 0
+        # Playlist names the frame is currently assembling, shown as feedback.
+        self.pending_playlists: list[str] = []
         self._metadata: dict[str, dict[str, Any]] = {}
 
     async def _async_update_data(self) -> DynaframeData:
@@ -124,6 +126,28 @@ class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):
             self._polls = 0  # refresh everything once the frame is back
             raise UpdateFailed(str(err)) from err
         return data
+
+    def start_playlists(self, playlists: list[dict[str, Any]]) -> None:
+        """Start playing playlists without blocking the caller.
+
+        The frame answers only once the mix is built, which can take minutes.
+        """
+        names = [p["name"] for p in playlists]
+        self.pending_playlists = names
+        self.async_update_listeners()
+
+        async def _start() -> None:
+            try:
+                await self.api.play_playlists([p["id"] for p in playlists], " + ".join(names))
+            except DynaframeError as err:
+                _LOGGER.error("Could not start playlists %s: %s", names, err)
+            finally:
+                self.pending_playlists = []
+                await self.async_request_refresh()
+
+        self.config_entry.async_create_background_task(
+            self.hass, _start(), f"{DOMAIN} start playlists"
+        )
 
     async def async_refresh_playlists(self) -> None:
         """Force the slow data to be refreshed with the next poll."""

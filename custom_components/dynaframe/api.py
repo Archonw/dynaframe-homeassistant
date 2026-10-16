@@ -9,6 +9,8 @@ from typing import Any
 import aiohttp
 
 TIMEOUT = aiohttp.ClientTimeout(total=10)
+# The frame builds a mixed playlist synchronously; ~8000 items took 80 s.
+PLAY_TIMEOUT = aiohttp.ClientTimeout(total=300)
 
 
 class DynaframeError(Exception):
@@ -33,10 +35,11 @@ class DynaframeApi:
         json: Any = None,
         raw: bool = False,
         data: dict[str, str] | None = None,
+        timeout: aiohttp.ClientTimeout = TIMEOUT,
     ) -> Any:
         try:
             async with self._session.request(
-                method, f"{self.base_url}{path}", json=json, data=data, timeout=TIMEOUT
+                method, f"{self.base_url}{path}", json=json, data=data, timeout=timeout
             ) as resp:
                 resp.raise_for_status()
                 if raw:
@@ -165,6 +168,7 @@ class DynaframeApi:
         await self._request(
             "POST",
             "/engine-proxy/playlists/play-selection",
+            timeout=PLAY_TIMEOUT,
             json={
                 "startPlayback": True,
                 "playlistName": name,
