@@ -89,6 +89,16 @@ Video-Ton, Stumm, Overlays, Systeminfos, Neustart).
 **Automatisch hinzufügen:** In den Optionen der Integration lässt sich einschalten, dass neu
 gefundene Frames ohne Bestätigung eingerichtet werden.
 
+## Authors
+
+- **Jan** ([@Archonw](https://github.com/Archonw)) – idea, testing and maintenance
+- **Claude** (AI assistant by [Anthropic](https://www.anthropic.com), via
+  [Claude Code](https://claude.com/claude-code)) – design and implementation of the
+  integration and the dashboard card
+
+*Autoren: Jan (Idee, Tests, Pflege) und Claude, der KI-Assistent von Anthropic
+(Entwurf und Umsetzung von Integration und Karte).*
+
 ## License
 
 [MIT](LICENSE) – not affiliated with or endorsed by Dynaframe™.
