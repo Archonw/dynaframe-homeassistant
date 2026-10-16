@@ -3,7 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
 [![Validate](https://github.com/Archonw/dynaframe-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/Archonw/dynaframe-homeassistant/actions/workflows/validate.yml)
 
-Local control of [Dynaframe™](https://dynaframe.com) digital picture frames from Home Assistant –
+Local control of [Dynaframe™](https://geek-toolkit.com/) digital picture frames from Home Assistant –
 including automatic discovery and a dashboard card. No MQTT broker and no cloud needed.
 
 *Deutsche Beschreibung weiter unten.*
