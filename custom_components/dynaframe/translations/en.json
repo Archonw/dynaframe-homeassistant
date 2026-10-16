@@ -169,5 +169,22 @@
         }
       }
     }
+  },
+  "services": {
+    "play_playlists": {
+      "name": "Play playlists",
+      "description": "Plays one or more saved playlists mixed together.",
+      "fields": {
+        "playlists": {
+          "name": "Playlists",
+          "description": "Names of the playlists to mix."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_playlist": {
+      "message": "Unknown playlist: {playlists}. Available: {available}"
+    }
   }
 }

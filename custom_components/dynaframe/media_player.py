@@ -11,11 +11,16 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
     MediaType,
 )
+import voluptuous as vol
+
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import DynaframeConfigEntry
 from .api import DynaframeError
+from .const import DOMAIN
 from .entity import DynaframeEntity
 
 # Live content (videos, camera streams) changes without a new item, so the
@@ -44,6 +49,11 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     async_add_entities([DynaframeMediaPlayer(entry.runtime_data)])
+    entity_platform.async_get_current_platform().async_register_entity_service(
+        "play_playlists",
+        {vol.Required("playlists"): vol.All(cv.ensure_list, [cv.string])},
+        "async_play_playlists",
+    )
 
 
 class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
@@ -82,8 +92,8 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
 
     @property
     def media_album_name(self) -> str | None:
-        playlist = self.coordinator.data.current_playlist
-        return playlist.get("name") if playlist else None
+        names = [p["name"] for p in self.coordinator.data.active_playlists]
+        return " + ".join(names) if names else None
 
     @property
     def media_content_id(self) -> str | None:
@@ -133,7 +143,8 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
 
     @property
     def source(self) -> str | None:
-        return self.media_album_name
+        playlist = self.coordinator.data.current_playlist
+        return playlist.get("name") if playlist else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -145,6 +156,7 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
             "item_index": status.get("currentItemIndex"),
             "item_count": status.get("totalItems"),
             "slide_duration": self.coordinator.data.slideshow.get("durationSeconds"),
+            "active_playlists": [p["name"] for p in self.coordinator.data.active_playlists],
             "host": self.coordinator.api.host,
         }
 
@@ -191,6 +203,26 @@ class DynaframeMediaPlayer(DynaframeEntity, MediaPlayerEntity):
     async def async_set_shuffle(self, shuffle: bool) -> None:
         await self._run(
             self.coordinator.api.update_slideshow_settings(randomizeOrder=shuffle)
+        )
+
+    async def async_play_playlists(self, playlists: list[str]) -> None:
+        """Mix one or more saved playlists (the frame's "quick mix")."""
+        by_name = {p["name"]: p for p in self.coordinator.data.user_playlists}
+        unknown = [name for name in playlists if name not in by_name]
+        if unknown or not playlists:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_playlist",
+                translation_placeholders={
+                    "playlists": ", ".join(unknown) or "-",
+                    "available": ", ".join(by_name) or "-",
+                },
+            )
+        chosen = [by_name[name] for name in dict.fromkeys(playlists)]
+        await self._run(
+            self.coordinator.api.play_playlists(
+                [p["id"] for p in chosen], " + ".join(p["name"] for p in chosen)
+            )
         )
 
     async def async_select_source(self, source: str) -> None:

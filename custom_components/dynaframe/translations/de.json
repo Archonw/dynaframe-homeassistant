@@ -169,5 +169,22 @@
         }
       }
     }
+  },
+  "services": {
+    "play_playlists": {
+      "name": "Wiedergabelisten abspielen",
+      "description": "Spielt eine oder mehrere gespeicherte Wiedergabelisten gemischt ab.",
+      "fields": {
+        "playlists": {
+          "name": "Wiedergabelisten",
+          "description": "Namen der Wiedergabelisten, die gemischt werden sollen."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_playlist": {
+      "message": "Unbekannte Wiedergabeliste: {playlists}. Verfügbar: {available}"
+    }
   }
 }

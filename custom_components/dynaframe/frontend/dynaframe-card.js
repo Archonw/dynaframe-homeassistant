@@ -8,7 +8,7 @@
  *   show_preview: true   # optional
  */
 
-const CARD_VERSION = "1.0.0";
+const CARD_VERSION = "1.1.0";
 
 const t = (hass, de, en) => ((hass?.locale?.language || hass?.language || "en").startsWith("de") ? de : en);
 
@@ -94,6 +94,26 @@ const STYLE = `
   .iconbtn { border: none; background: none; cursor: pointer; padding: 0; color: var(--secondary-text-color); display: grid; }
   .none { padding: 24px 16px; color: var(--secondary-text-color); }
   .row label.toggle { position: relative; width: 40px; height: 22px; flex: none; }
+  .pl-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font: inherit; cursor: pointer;
+               color: var(--primary-text-color); background: var(--secondary-background-color);
+               border: 1px solid var(--divider-color); border-radius: 8px; padding: 6px 8px; text-align: left; }
+  .pl-toggle .pl-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-toggle .chev { color: var(--secondary-text-color); transition: transform .2s; }
+  .pl-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .pl-panel { margin: 8px 0 0 34px; border: 1px solid var(--divider-color); border-radius: 10px; padding: 6px; }
+  .pl-list { max-height: 220px; overflow-y: auto; }
+  .pl-item { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; cursor: pointer;
+             color: var(--primary-text-color); }
+  .pl-item:hover { background: var(--secondary-background-color); }
+  .pl-item input { width: 18px; height: 18px; accent-color: var(--primary-color); margin: 0; flex: none; }
+  .pl-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-item.active span::after { content: " •"; color: var(--primary-color); }
+  .pl-actions { display: flex; gap: 8px; align-items: center; padding: 8px 4px 2px; }
+  .pl-actions .hint { flex: 1; font-size: .8rem; color: var(--secondary-text-color); }
+  .pl-actions button { font: inherit; border-radius: 8px; padding: 6px 12px; cursor: pointer; border: none; }
+  .pl-play { background: var(--primary-color); color: var(--text-primary-color, #fff); }
+  .pl-play:disabled { opacity: .4; cursor: default; }
+  .pl-cancel { background: none; color: var(--primary-text-color); }
   .settings-toggle { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px;
                      padding: 10px 12px; border: 1px solid var(--divider-color); border-radius: 10px;
                      background: none; color: var(--primary-text-color); font: inherit; cursor: pointer; }
@@ -227,9 +247,19 @@ class DynaframeCard extends HTMLElement {
           <button class="ctrl" data-act="next" title="${t(hass, "Weiter", "Next")}"><ha-icon icon="mdi:skip-next"></ha-icon></button>
           <button class="ctrl" data-act="stop" title="Stop"><ha-icon icon="mdi:stop"></ha-icon></button>
         </div>
-        <div class="row">
+        <div class="row playlist-row">
           <ha-icon icon="mdi:playlist-play"></ha-icon>
-          <select data-act="playlist" aria-label="${t(hass, "Wiedergabeliste", "Playlist")}"></select>
+          <button class="pl-toggle" data-act="pl-toggle" aria-expanded="false" aria-controls="dfPlaylists">
+            <span class="pl-label"></span><ha-icon class="chev" icon="mdi:chevron-down"></ha-icon>
+          </button>
+        </div>
+        <div class="pl-panel" id="dfPlaylists" hidden>
+          <div class="pl-list" role="group" aria-label="${t(hass, "Wiedergabelisten", "Playlists")}"></div>
+          <div class="pl-actions">
+            <span class="hint"></span>
+            <button class="pl-cancel" data-act="pl-cancel">${t(hass, "Abbrechen", "Cancel")}</button>
+            <button class="pl-play" data-act="pl-play">${t(hass, "Abspielen", "Play")}</button>
+          </div>
         </div>
         <div class="row volume-row">
           <button class="iconbtn" data-act="mute" title="${t(hass, "Stumm", "Mute")}"><ha-icon icon="mdi:volume-high"></ha-icon></button>
@@ -302,6 +332,7 @@ class DynaframeCard extends HTMLElement {
     root.querySelectorAll(".tab").forEach((b) =>
       b.addEventListener("click", () => {
         this._selected = b.dataset.id;
+        this._plDraft = null;
         this._render();
       }),
     );
@@ -381,14 +412,82 @@ class DynaframeCard extends HTMLElement {
       if (num) return this._call("number", "set_value", { entity_id: num, value: Number(e.target.value) });
       this._call("media_player", "volume_set", { ...target(), volume_level: Number(e.target.value) / 100 });
     });
-    on("playlist", "change", (e) => {
-      const selId = sibling(this._hass, this._selected, "select", "playlist");
-      if (e.target.value && selId) this._call("select", "select_option", { entity_id: selId, option: e.target.value });
+    const plPanel = root.getElementById("dfPlaylists");
+    const plToggle = root.querySelector('[data-act="pl-toggle"]');
+    const setPlOpen = (open) => {
+      plToggle.setAttribute("aria-expanded", String(open));
+      plPanel.hidden = !open;
+      this._plDraft = open ? new Set(this._activePlaylists()) : null;
+      this._renderPlaylistList(true);
+    };
+    on("pl-toggle", "click", () => setPlOpen(plPanel.hidden));
+    on("pl-cancel", "click", () => setPlOpen(false));
+    on("pl-play", "click", () => {
+      const chosen = [...(this._plDraft || [])];
+      if (!chosen.length) return;
+      this._call("dynaframe", "play_playlists", { ...target(), playlists: chosen });
+      setPlOpen(false);
+    });
+    plPanel.addEventListener("change", (e) => {
+      if (!e.target.matches('input[type="checkbox"]')) return;
+      if (e.target.checked) this._plDraft.add(e.target.value);
+      else this._plDraft.delete(e.target.value);
+      this._renderPlaylistList(false);
     });
     on("duration", "change", (e) => {
       const num = sibling(this._hass, this._selected, "number", "slide_duration");
       if (num) this._call("number", "set_value", { entity_id: num, value: Number(e.target.value) });
     });
+  }
+
+  /** Names of the playlists the selected frame is currently mixing. */
+  _activePlaylists() {
+    const hass = this._hass;
+    const sel = hass.states[sibling(hass, this._selected, "select", "playlist")];
+    const fromAttr = sel?.attributes.active_playlists;
+    if (Array.isArray(fromAttr)) return fromAttr;
+    return sel && (sel.attributes.options || []).includes(sel.state) ? [sel.state] : [];
+  }
+
+  /** Checklist of playlists; `rebuild` re-creates rows, otherwise only state is synced. */
+  _renderPlaylistList(rebuild) {
+    const root = this.shadowRoot;
+    const list = root?.querySelector(".pl-list");
+    if (!list || root.getElementById("dfPlaylists").hidden) return;
+    const hass = this._hass;
+    const sel = hass.states[sibling(hass, this._selected, "select", "playlist")];
+    const options = sel?.attributes.options || [];
+    const active = new Set(this._activePlaylists());
+    const draft = this._plDraft || new Set();
+    const sig = options.join("\u0000");
+    if (rebuild || list.dataset.sig !== sig) {
+      list.dataset.sig = sig;
+      list.innerHTML = "";
+      options.forEach((name) => {
+        const label = document.createElement("label");
+        label.className = "pl-item";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.value = name;
+        const text = document.createElement("span");
+        text.textContent = name;
+        label.append(box, text);
+        list.append(label);
+      });
+    }
+    list.querySelectorAll(".pl-item").forEach((label) => {
+      const box = label.querySelector("input");
+      box.checked = draft.has(box.value);
+      label.classList.toggle("active", active.has(box.value));
+    });
+    const n = draft.size;
+    root.querySelector(".pl-actions .hint").textContent =
+      n === 0
+        ? t(hass, "Mindestens eine auswählen", "Select at least one")
+        : n === 1
+          ? t(hass, "1 ausgewählt", "1 selected")
+          : t(hass, `${n} ausgewählt – werden gemischt`, `${n} selected – mixed together`);
+    root.querySelector('[data-act="pl-play"]').disabled = n === 0;
   }
 
   _update(players) {
@@ -419,8 +518,8 @@ class DynaframeCard extends HTMLElement {
     const sub = root.querySelector(".sub");
     if (sub) {
       const parts = [];
-      const source = a.source || hass.states[sibling(hass, id, "select", "playlist")]?.state;
-      if (source && !["unknown", "unavailable"].includes(source)) parts.push(source);
+      const active = this._activePlaylists();
+      if (active.length) parts.push(active.join(" + "));
       if (a.item_count) parts.push(`${(a.item_index ?? 0) + 1} / ${a.item_count}`);
       if (a.media_artist) parts.push(a.media_artist);
       sub.textContent = parts.join(" · ");
@@ -452,24 +551,18 @@ class DynaframeCard extends HTMLElement {
     const shuffleId = sibling(hass, id, "switch", "shuffle");
     root.querySelector('[data-act="shuffle"]')?.classList.toggle("active", hass.states[shuffleId]?.state === "on");
 
-    const sel = root.querySelector('[data-act="playlist"]');
-    const playlist = hass.states[sibling(hass, id, "select", "playlist")];
-    if (sel && playlist && root.activeElement !== sel) {
-      const list = playlist.attributes.options || [];
-      const current = list.includes(playlist.state) ? playlist.state : "";
-      const sig = list.join("\u0000") + "|" + current;
-      if (sel.dataset.sig !== sig) {
-        sel.dataset.sig = sig;
-        sel.innerHTML = "";
-        if (!current) {
-          const o = new Option(t(hass, "Gemischte Auswahl", "Mixed selection"), "");
-          o.disabled = true;
-          sel.add(o);
-        }
-        list.forEach((name) => sel.add(new Option(name, name, false, name === current)));
-        sel.value = current;
-      }
+    const plRow = root.querySelector(".playlist-row");
+    const plEntity = hass.states[sibling(hass, id, "select", "playlist")];
+    if (plRow) plRow.hidden = !plEntity || plEntity.state === "unavailable";
+    const plLabel = root.querySelector(".pl-label");
+    if (plLabel) {
+      const active = this._activePlaylists();
+      plLabel.textContent = active.length
+        ? active.join(" + ")
+        : t(hass, "Wiedergabeliste wählen", "Choose playlist");
+      plLabel.title = plLabel.textContent;
     }
+    this._renderPlaylistList(false);
 
     const vol = root.querySelector('[data-act="volume"]');
     const volEntity = hass.states[sibling(hass, id, "number", "volume")];

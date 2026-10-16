@@ -41,6 +41,11 @@ class PlaylistSelect(DynaframeEntity, SelectEntity):
         playlist = self.coordinator.data.current_playlist
         return playlist.get("name") if playlist else None
 
+    @property
+    def extra_state_attributes(self) -> dict[str, list[str]]:
+        # The select shows one playlist; a mix of several is listed here.
+        return {"active_playlists": [p["name"] for p in self.coordinator.data.active_playlists]}
+
     async def async_select_option(self, option: str) -> None:
         playlist = next(
             p for p in self.coordinator.data.user_playlists if p["name"] == option

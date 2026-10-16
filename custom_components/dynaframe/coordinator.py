@@ -57,15 +57,20 @@ class DynaframeData:
         return [p for p in self.playlists if is_user_playlist(p)]
 
     @property
-    def current_playlist(self) -> dict[str, Any] | None:
+    def active_playlists(self) -> list[dict[str, Any]]:
+        """Saved playlists the frame is currently mixing (one or more)."""
         ids = (self.selection.get("quickMixState") or {}).get(
             "enabledSavedPlaylistIds"
         ) or []
         if self.selection.get("savedPlaylistId"):
             ids = [self.selection["savedPlaylistId"]]
-        if len(ids) != 1:
-            return None
-        return next((p for p in self.playlists if p.get("id") == ids[0]), None)
+        by_id = {p.get("id"): p for p in self.playlists}
+        return [by_id[i] for i in ids if i in by_id]
+
+    @property
+    def current_playlist(self) -> dict[str, Any] | None:
+        active = self.active_playlists
+        return active[0] if len(active) == 1 else None
 
     @property
     def display_on(self) -> bool:

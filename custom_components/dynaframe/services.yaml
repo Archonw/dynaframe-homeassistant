@@ -1,0 +1,12 @@
+play_playlists:
+  target:
+    entity:
+      integration: dynaframe
+      domain: media_player
+  fields:
+    playlists:
+      required: true
+      example: '["Garten", "Urlaub"]'
+      selector:
+        text:
+          multiple: true

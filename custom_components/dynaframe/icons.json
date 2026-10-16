@@ -1,0 +1,7 @@
+{
+  "services": {
+    "play_playlists": {
+      "service": "mdi:playlist-play"
+    }
+  }
+}
