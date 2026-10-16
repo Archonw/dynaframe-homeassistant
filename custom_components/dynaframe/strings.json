@@ -1,0 +1,173 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "discovery_confirm": {
+        "title": "Dynaframe discovered",
+        "description": "Add {name} ({host}) to Home Assistant?"
+      },
+      "pick": {
+        "title": "Choose frame",
+        "description": "Dynaframes found on your network.",
+        "data": {
+          "host": "Frame"
+        }
+      },
+      "manual": {
+        "title": "Add Dynaframe",
+        "description": "IP address or hostname of the frame.",
+        "data": {
+          "host": "Host"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Frame unreachable or not a Dynaframe."
+    },
+    "abort": {
+      "already_configured": "This frame is already configured.",
+      "cannot_connect": "Frame unreachable.",
+      "not_ipv4": "Only IPv4 addresses are supported."
+    }
+  },
+  "entity": {
+    "media_player": {
+      "frame": {
+        "name": "Frame"
+      }
+    },
+    "switch": {
+      "display": {
+        "name": "Display"
+      },
+      "shuffle": {
+        "name": "Shuffle"
+      },
+      "video_audio": {
+        "name": "Video audio"
+      },
+      "mute": {
+        "name": "Mute"
+      },
+      "overlays": {
+        "name": "Overlays"
+      }
+    },
+    "number": {
+      "slide_duration": {
+        "name": "Slide duration"
+      },
+      "volume": {
+        "name": "Volume"
+      },
+      "transition_duration": {
+        "name": "Transition duration"
+      }
+    },
+    "select": {
+      "playlist": {
+        "name": "Playlist"
+      },
+      "transition": {
+        "name": "Transition",
+        "state": {
+          "random": "Random",
+          "asciidecode": "ASCII Decode",
+          "blinds": "Blinds",
+          "cellularautomata": "Cellular Automata",
+          "circleopen": "Circleopen",
+          "circuitbloom": "Circuit Bloom",
+          "colorphase": "Colorphase",
+          "crossfade": "Crossfade",
+          "crosswarp": "Crosswarp",
+          "crystalshards": "Crystalshards",
+          "cube": "Cube",
+          "directionalwipe": "Directional Wipe",
+          "drawing": "Drawing",
+          "dreamyzoom": "Dreamy Zoom",
+          "eventhorizon": "Event Horizon",
+          "falling_polaroid": "Falling Polaroid",
+          "filmburn": "Filmburn",
+          "fisheye": "Fisheye",
+          "gifoverlay": "Video Overlay",
+          "glitch": "Glitch",
+          "gridflip": "Gridflip",
+          "hexagonpixelate": "Hexagon Pixelate",
+          "hexdrop": "Hexdrop",
+          "hextile": "Hex Tile",
+          "juliarift": "Julia Rift",
+          "kaleidoscope": "Kaleidoscope",
+          "lantern_glow": "Lantern Glow",
+          "linearblur": "Linear Blur",
+          "liquidlens": "Liquid Lens",
+          "moirezoom": "Moirezoom",
+          "morph": "Morph",
+          "none": "None",
+          "pixelate": "Pixelate",
+          "polarcurtain": "Polar Curtain",
+          "prism_wipe": "Prism Wipe",
+          "randomsquares": "Randomsquares",
+          "ripple": "Ripple",
+          "soft_page_turn": "Soft Page Turn",
+          "swirl": "Swirl",
+          "verticalwipe": "Vertical Wipe",
+          "vortexportal": "Vortex Portal",
+          "wind": "Wind",
+          "zoomblur": "Zoom Blur"
+        }
+      },
+      "default_overlay": {
+        "name": "Default overlay"
+      }
+    },
+    "sensor": {
+      "current_item": {
+        "name": "Current item"
+      },
+      "sleep_state": {
+        "name": "Sleep state"
+      },
+      "version": {
+        "name": "Version"
+      },
+      "sync_role": {
+        "name": "Sync role",
+        "state": {
+          "independent": "Independent",
+          "leader": "Leader",
+          "follower": "Follower"
+        }
+      },
+      "memory_used": {
+        "name": "Memory used"
+      },
+      "media_storage_used": {
+        "name": "Media storage used"
+      },
+      "system_storage_used": {
+        "name": "System storage used"
+      }
+    },
+    "binary_sensor": {
+      "update_available": {
+        "name": "Update available"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot device"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "When on, every Dynaframe found on the network is set up without confirmation. Deleted frames are moved to \"Ignored\" so they do not come back. Applies to all frames.",
+        "data": {
+          "auto_add": "Add newly discovered frames automatically"
+        }
+      }
+    }
+  }
+}

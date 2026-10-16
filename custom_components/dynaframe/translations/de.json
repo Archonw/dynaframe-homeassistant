@@ -1,0 +1,173 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "discovery_confirm": {
+        "title": "Dynaframe gefunden",
+        "description": "{name} ({host}) zu Home Assistant hinzufügen?"
+      },
+      "pick": {
+        "title": "Frame auswählen",
+        "description": "Diese Dynaframes wurden im Netzwerk gefunden.",
+        "data": {
+          "host": "Frame"
+        }
+      },
+      "manual": {
+        "title": "Dynaframe hinzufügen",
+        "description": "IP-Adresse oder Hostname des Frames.",
+        "data": {
+          "host": "Host"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Frame nicht erreichbar oder kein Dynaframe."
+    },
+    "abort": {
+      "already_configured": "Dieser Frame ist bereits eingerichtet.",
+      "cannot_connect": "Frame nicht erreichbar.",
+      "not_ipv4": "Nur IPv4-Adressen werden unterstützt."
+    }
+  },
+  "entity": {
+    "media_player": {
+      "frame": {
+        "name": "Frame"
+      }
+    },
+    "switch": {
+      "display": {
+        "name": "Bildschirm"
+      },
+      "shuffle": {
+        "name": "Zufällige Reihenfolge"
+      },
+      "video_audio": {
+        "name": "Video-Ton"
+      },
+      "mute": {
+        "name": "Stummschaltung"
+      },
+      "overlays": {
+        "name": "Overlays"
+      }
+    },
+    "number": {
+      "slide_duration": {
+        "name": "Anzeigedauer"
+      },
+      "volume": {
+        "name": "Lautstärke"
+      },
+      "transition_duration": {
+        "name": "Überblendungsdauer"
+      }
+    },
+    "select": {
+      "playlist": {
+        "name": "Wiedergabeliste"
+      },
+      "transition": {
+        "name": "Überblendung",
+        "state": {
+          "random": "Random",
+          "asciidecode": "ASCII Decode",
+          "blinds": "Blinds",
+          "cellularautomata": "Cellular Automata",
+          "circleopen": "Circleopen",
+          "circuitbloom": "Circuit Bloom",
+          "colorphase": "Colorphase",
+          "crossfade": "Crossfade",
+          "crosswarp": "Crosswarp",
+          "crystalshards": "Crystalshards",
+          "cube": "Cube",
+          "directionalwipe": "Directional Wipe",
+          "drawing": "Drawing",
+          "dreamyzoom": "Dreamy Zoom",
+          "eventhorizon": "Event Horizon",
+          "falling_polaroid": "Falling Polaroid",
+          "filmburn": "Filmburn",
+          "fisheye": "Fisheye",
+          "gifoverlay": "Video Overlay",
+          "glitch": "Glitch",
+          "gridflip": "Gridflip",
+          "hexagonpixelate": "Hexagon Pixelate",
+          "hexdrop": "Hexdrop",
+          "hextile": "Hex Tile",
+          "juliarift": "Julia Rift",
+          "kaleidoscope": "Kaleidoscope",
+          "lantern_glow": "Lantern Glow",
+          "linearblur": "Linear Blur",
+          "liquidlens": "Liquid Lens",
+          "moirezoom": "Moirezoom",
+          "morph": "Morph",
+          "none": "None",
+          "pixelate": "Pixelate",
+          "polarcurtain": "Polar Curtain",
+          "prism_wipe": "Prism Wipe",
+          "randomsquares": "Randomsquares",
+          "ripple": "Ripple",
+          "soft_page_turn": "Soft Page Turn",
+          "swirl": "Swirl",
+          "verticalwipe": "Vertical Wipe",
+          "vortexportal": "Vortex Portal",
+          "wind": "Wind",
+          "zoomblur": "Zoom Blur"
+        }
+      },
+      "default_overlay": {
+        "name": "Standard-Overlay"
+      }
+    },
+    "sensor": {
+      "current_item": {
+        "name": "Aktuelles Medium"
+      },
+      "sleep_state": {
+        "name": "Schlafstatus"
+      },
+      "version": {
+        "name": "Version"
+      },
+      "sync_role": {
+        "name": "Sync-Rolle",
+        "state": {
+          "independent": "Unabhängig",
+          "leader": "Führend",
+          "follower": "Folgend"
+        }
+      },
+      "memory_used": {
+        "name": "Arbeitsspeicher belegt"
+      },
+      "media_storage_used": {
+        "name": "Medienspeicher belegt"
+      },
+      "system_storage_used": {
+        "name": "Systemspeicher belegt"
+      }
+    },
+    "binary_sensor": {
+      "update_available": {
+        "name": "Update verfügbar"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Gerät neu starten"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "description": "Wenn aktiv, wird jeder im Netzwerk gefundene Dynaframe ohne Bestätigung eingerichtet. Gelöschte Frames landen unter „Ignoriert“, damit sie nicht wiederkommen. Gilt für alle Frames.",
+        "data": {
+          "auto_add": "Neu gefundene Frames automatisch hinzufügen"
+        }
+      }
+    }
+  }
+}
