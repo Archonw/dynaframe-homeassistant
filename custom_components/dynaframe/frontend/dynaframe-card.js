@@ -629,7 +629,7 @@ if (!window.customCards.some((c) => c.type === "dynaframe-card")) {
       ? "Vorschau, Steuerung und Einstellungen deiner Dynaframes"
       : "Preview, control and settings for your Dynaframes",
     preview: true,
-    documentationURL: "https://github.com/GITHUB_USER/dynaframe-homeassistant",
+    documentationURL: "https://github.com/Achonw/dynaframe-homeassistant",
   });
   console.info(`%c DYNAFRAME-CARD %c ${CARD_VERSION} `, "background:#03a9f4;color:#fff", "");
 }

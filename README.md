@@ -1,7 +1,7 @@
 # Dynaframe for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
-[![Validate](https://github.com/GITHUB_USER/dynaframe-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/GITHUB_USER/dynaframe-homeassistant/actions/workflows/validate.yml)
+[![Validate](https://github.com/Achonw/dynaframe-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/Achonw/dynaframe-homeassistant/actions/workflows/validate.yml)
 
 Local control of [Dynaframe™](https://dynaframe.com) digital picture frames from Home Assistant –
 including automatic discovery and a dashboard card. No MQTT broker and no cloud needed.
@@ -27,7 +27,7 @@ including automatic discovery and a dashboard card. No MQTT broker and no cloud 
 ### HACS (recommended)
 
 1. HACS → ⋮ → **Custom repositories**
-2. Repository: `https://github.com/GITHUB_USER/dynaframe-homeassistant`, type **Integration**
+2. Repository: `https://github.com/Achonw/dynaframe-homeassistant`, type **Integration**
 3. Install **Dynaframe** and restart Home Assistant
 4. Frames on your network show up under *Settings → Devices & services → Discovered*.
    You can also add them via **Add integration → Dynaframe**, which scans your network.
@@ -78,7 +78,7 @@ Lokale Steuerung von Dynaframe™-Bilderrahmen in Home Assistant – mit automat
 und eigener Dashboard-Karte, ohne MQTT und ohne Cloud.
 
 **Installation:** HACS → ⋮ → *Benutzerdefinierte Repositories* →
-`https://github.com/GITHUB_USER/dynaframe-homeassistant` als **Integration** hinzufügen,
+`https://github.com/Achonw/dynaframe-homeassistant` als **Integration** hinzufügen,
 „Dynaframe“ installieren, Home Assistant neu starten. Gefundene Frames erscheinen unter
 *Einstellungen → Geräte & Dienste → Entdeckt*.
 

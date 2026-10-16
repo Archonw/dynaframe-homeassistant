@@ -2,7 +2,7 @@
   "domain": "dynaframe",
   "name": "Dynaframe",
   "codeowners": [
-    "@GITHUB_USER"
+    "@Achonw"
   ],
   "config_flow": true,
   "dependencies": [
@@ -15,10 +15,10 @@
       "hostname": "dynaframe*"
     }
   ],
-  "documentation": "https://github.com/GITHUB_USER/dynaframe-homeassistant",
+  "documentation": "https://github.com/Achonw/dynaframe-homeassistant",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/GITHUB_USER/dynaframe-homeassistant/issues",
+  "issue_tracker": "https://github.com/Achonw/dynaframe-homeassistant/issues",
   "requirements": [],
   "version": "1.0.0",
   "zeroconf": [
