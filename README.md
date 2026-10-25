@@ -21,7 +21,7 @@ including automatic discovery and a dashboard card. No MQTT broker and no cloud 
 - **Metadata** of the current image (title, author, date taken, camera, keywords, tags …)
 - **Reboot** button
 - **Dashboard card** that ships with the integration – nothing to add under *Resources*
-- **Store downloads card** for the DynaFrame Pro store: total, downloads per pack and per day
+- **Store downloads card** for your own DynaFrame Pro store on GitHub: total, downloads per pack and per day
 
 ## Installation
 
@@ -55,44 +55,47 @@ and contains transitions, slide duration, video audio, mute, overlays, system in
 
 ## Store downloads card
 
-A second card that ships with the integration shows how often the packs of the
-[DynaFrame Pro store](https://github.com/Archonw/Jans-DynaframePro-Store) were downloaded:
+If you publish your own DynaFrame Pro store as GitHub releases (one release per pack version),
+a second card that ships with the integration shows how often your packs were downloaded:
 the total, a table of all packs sorted by downloads, and a bar chart of downloads per day.
 
-Edit a dashboard → **Add card** → search for **Dynaframe Store-Downloads**, or use YAML:
+Edit a dashboard → **Add card** → search for **Dynaframe Store-Downloads** and enter your
+store's repository (`owner/repo`), or use YAML:
 
 ```yaml
 type: custom:dynaframe-store-card
 title: Store downloads                     # optional
-repo: Archonw/Jans-DynaframePro-Store      # optional
-entity: sensor.store_downloads_gesamt      # optional, for the daily chart
+repo: your-name/your-store                # required
+entity: sensor.store_downloads_total       # optional, for the daily chart
 days: 30                                   # optional
 ```
 
 Total and table are read directly from the public GitHub releases API by the browser (no login,
-cached for an hour, all releases are counted). New packs appear automatically.
+cached for an hour, all releases are counted). New packs appear automatically. Releases are
+grouped into packs by their tag without the version (`playlist-button-1.6.3` → `playlist-button`).
 
 GitHub only reports running totals, so the **per-day chart** needs Home Assistant to record the
-total over time. Add this sensor to `configuration.yaml` (or a package) and restart once:
+total over time. Add this sensor to `configuration.yaml` (or a package), replace
+`your-name/your-store` with your repository, restart once and pick the sensor in the card:
 
 ```yaml
 rest:
-  - resource: https://api.github.com/repos/Archonw/Jans-DynaframePro-Store/releases?per_page=100
+  - resource: https://api.github.com/repos/your-name/your-store/releases?per_page=100
     scan_interval: 3600
     headers:
       Accept: application/vnd.github+json
       User-Agent: HomeAssistant-DynaFrame-Store
     sensor:
-      - name: Store Downloads gesamt
-        unique_id: dynaframe_store_downloads_gesamt
+      - name: Store downloads total
+        unique_id: dynaframe_store_downloads_total
         icon: mdi:download
         unit_of_measurement: Downloads
         state_class: total_increasing
         value_template: "{{ value_json | map(attribute='assets') | sum(start=[]) | map(attribute='download_count') | sum }}"
 ```
 
-The first bars appear after Home Assistant has written its hourly statistics. Per-pack sensors
-are not needed for the card.
+The first bars appear after Home Assistant has written its hourly statistics. The sensor reads
+the newest 100 releases; the card itself counts all of them.
 
 ## Options
 
@@ -134,11 +137,12 @@ und eigener Dashboard-Karte, ohne MQTT und ohne Cloud.
 Lautstärkeregler klappt das Menü **Einstellungen** auf (Überblendung, Anzeigedauer,
 Video-Ton, Stumm, Overlays, Systeminfos, Neustart).
 
-**Store-Downloads-Karte:** Dashboard bearbeiten → *Karte hinzufügen* → „Dynaframe Store-Downloads“.
-Zeigt die Gesamtzahl, eine nach Downloads sortierte Tabelle aller Packs (neue Packs erscheinen
-von selbst) und „Downloads pro Tag“. Gesamtzahl und Tabelle holt die Karte direkt von GitHub.
-Für das Tagesdiagramm braucht Home Assistant den Sensor `sensor.store_downloads_gesamt`
-(YAML siehe [oben](#store-downloads-card)), weil GitHub nur Gesamtzahlen liefert.
+**Store-Downloads-Karte:** Für alle, die einen eigenen DynaFrame-Pro-Store als GitHub-Releases
+veröffentlichen. Dashboard bearbeiten → *Karte hinzufügen* → „Dynaframe Store-Downloads“ und das
+eigene Repo (`name/repo`) eintragen. Zeigt die Gesamtzahl, eine nach Downloads sortierte Tabelle
+aller Packs (neue Packs erscheinen von selbst) und „Downloads pro Tag“. Für das Tagesdiagramm
+braucht Home Assistant einen Sensor mit den Gesamt-Downloads (YAML siehe
+[oben](#store-downloads-card)), weil GitHub nur Gesamtzahlen liefert.
 
 **Passendes Theme:** Das Theme „Dynaframe“ aus [Archonw Themes](https://github.com/Archonw/ha-themes) lässt dein Dashboard wie die Dynaframe-Oberfläche aussehen.
 
