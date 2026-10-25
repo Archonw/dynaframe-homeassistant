@@ -4,8 +4,8 @@
  *
  *   type: custom:dynaframe-store-card
  *   title: Store-Downloads                     # optional
- *   repo: Archonw/Jans-DynaframePro-Store      # optional, GitHub repo with the releases
- *   entity: sensor.store_downloads_gesamt      # optional, total sensor for "downloads per day"
+ *   repo: owner/my-dynaframe-store             # required, GitHub repo with the releases
+ *   entity: sensor.store_downloads_total       # optional, total sensor for "downloads per day"
  *   days: 30                                   # optional
  *
  * Total and per-pack numbers come straight from the GitHub releases API (cached for an hour),
@@ -13,9 +13,8 @@
  * per-day chart needs a history: it reads the long-term statistics of the total sensor.
  */
 
-const STORE_CARD_VERSION = "1.2.0";
-const DEFAULT_REPO = "Archonw/Jans-DynaframePro-Store";
-const DEFAULT_ENTITY = "sensor.store_downloads_gesamt";
+const STORE_CARD_VERSION = "1.2.1";
+const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const CACHE_MS = 60 * 60 * 1000;
 const STATS_MS = 15 * 60 * 1000;
 
@@ -152,11 +151,14 @@ class DynaframeStoreCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { entity: DEFAULT_ENTITY };
+    return {};
   }
 
   setConfig(config) {
-    this._config = { repo: DEFAULT_REPO, entity: DEFAULT_ENTITY, days: 30, ...config };
+    const repo = String(config.repo || "").trim().replace(/^https:\/\/github\.com\//, "").replace(/\/+$/, "");
+    this._config = { days: 30, ...config, repo: REPO_RE.test(repo) ? repo : "" };
+    this._entry = undefined;
+    this._rowsKey = undefined;
     this._days = Math.max(7, Math.min(365, Number(this._config.days) || 30));
     this._statsAt = 0;
     this._stats = undefined;
@@ -196,7 +198,7 @@ class DynaframeStoreCard extends HTMLElement {
   }
 
   async _load(force = false) {
-    if (!this._config) return;
+    if (!this._config?.repo) return;
     const repo = this._config.repo;
     const cached = releaseCache.get(repo);
     if (cached) this._entry = cached;
@@ -258,11 +260,18 @@ class DynaframeStoreCard extends HTMLElement {
       <ha-card>
         <div class="header">
           <h2>${esc(title)}</h2>
-          <button class="refresh" title="${esc(tr(hass, "Jetzt aktualisieren", "Refresh now"))}">
+          <button class="refresh" ${this._config.repo ? "" : "hidden"} title="${esc(tr(hass, "Jetzt aktualisieren", "Refresh now"))}">
             <ha-icon icon="mdi:refresh"></ha-icon>
           </button>
         </div>
-        <div class="body">
+        <div class="body setup" ${this._config.repo ? "hidden" : ""}>
+          <div class="hint">${tr(
+            hass,
+            "Trag in den Karteneinstellungen das GitHub-Repo deines Stores ein, z. B. <code>name/mein-store</code>.",
+            "Enter your store's GitHub repo in the card settings, e.g. <code>name/my-store</code>.",
+          )}</div>
+        </div>
+        <div class="body" ${this._config.repo ? "" : "hidden"}>
           <div class="total">
             <div class="icon"><ha-icon icon="mdi:storefront"></ha-icon></div>
             <div><div class="n">–</div><div class="label">${esc(tr(hass, "Downloads gesamt", "Total downloads"))}</div></div>
@@ -334,13 +343,17 @@ class DynaframeStoreCard extends HTMLElement {
     const chart = this.shadowRoot.querySelector(".chart");
     const id = this._config.entity;
     if (!id || !hass?.states[id]) {
-      chart.innerHTML = `<div class="hint">${tr(
-        hass,
-        `Für den Tagesverlauf braucht Home Assistant den Sensor <code>${esc(id || DEFAULT_ENTITY)}</code> mit
-         <code>state_class: total_increasing</code>, GitHub liefert nur Gesamtzahlen. Anleitung in der README.`,
-        `The daily chart needs the sensor <code>${esc(id || DEFAULT_ENTITY)}</code> with
-         <code>state_class: total_increasing</code>, since GitHub only reports totals. See the README.`,
-      )}</div>`;
+      chart.innerHTML = `<div class="hint">${
+        id
+          ? tr(hass, `Sensor <code>${esc(id)}</code> nicht gefunden.`, `Sensor <code>${esc(id)}</code> not found.`)
+          : tr(
+              hass,
+              `GitHub liefert nur Gesamtzahlen. Für den Tagesverlauf in den Karteneinstellungen einen Sensor mit den
+               Gesamt-Downloads (<code>state_class: total_increasing</code>) wählen, Anleitung in der README.`,
+              `GitHub only reports totals. For the daily chart, pick a sensor with the total downloads
+               (<code>state_class: total_increasing</code>) in the card settings, see the README.`,
+            )
+      }</div>`;
       this._chartKey = undefined;
       return;
     }
@@ -414,23 +427,22 @@ class DynaframeStoreCardEditor extends HTMLElement {
       this._form.computeLabel = (s) =>
         ({
           title: tr(this._hass, "Titel", "Title"),
-          repo: tr(this._hass, "GitHub-Repo des Stores", "Store GitHub repo"),
+          repo: tr(this._hass, "GitHub-Repo des Stores (name/repo)", "Store GitHub repo (owner/repo)"),
           entity: tr(this._hass, "Gesamt-Sensor für Downloads pro Tag", "Total sensor for downloads per day"),
           days: tr(this._hass, "Tage im Diagramm", "Days in chart"),
         })[s.name];
       this._form.addEventListener("value-changed", (e) => {
         const config = { ...e.detail.value };
         for (const k of ["title", "repo", "entity"]) if (!config[k]) delete config[k];
-        if (config.repo === DEFAULT_REPO) delete config.repo;
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
       });
       this.appendChild(this._form);
     }
     this._form.hass = this._hass;
-    this._form.data = { repo: DEFAULT_REPO, days: 30, ...this._config };
+    this._form.data = { days: 30, ...this._config };
     this._form.schema = [
       { name: "title", selector: { text: {} } },
-      { name: "repo", selector: { text: {} } },
+      { name: "repo", required: true, selector: { text: {} } },
       { name: "entity", selector: { entity: { domain: "sensor" } } },
       { name: "days", selector: { number: { min: 7, max: 365, mode: "box" } } },
     ];
@@ -453,8 +465,8 @@ if (!window.customCards.some((c) => c.type === "dynaframe-store-card")) {
     type: "dynaframe-store-card",
     name: "Dynaframe Store-Downloads",
     description: (navigator.language || "").startsWith("de")
-      ? "Downloads der Packs aus dem DynaFrame-Pro-Store: gesamt, pro Pack und pro Tag"
-      : "Downloads of the DynaFrame Pro store packs: total, per pack and per day",
+      ? "Downloads der Packs aus deinem DynaFrame-Pro-Store auf GitHub: gesamt, pro Pack und pro Tag"
+      : "Downloads of the packs in your DynaFrame Pro store on GitHub: total, per pack and per day",
     preview: true,
     documentationURL: "https://github.com/Archonw/dynaframe-homeassistant#store-downloads-card",
   });
