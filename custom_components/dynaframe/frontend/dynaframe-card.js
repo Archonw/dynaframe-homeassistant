@@ -8,7 +8,7 @@
  *   show_preview: true   # optional
  */
 
-const CARD_VERSION = "1.1.1";
+const CARD_VERSION = "1.2.0";
 
 const t = (hass, de, en) => ((hass?.locale?.language || hass?.language || "en").startsWith("de") ? de : en);
 
