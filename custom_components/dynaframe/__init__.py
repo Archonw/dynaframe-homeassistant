@@ -18,7 +18,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
 from .api import DynaframeApi
-from .const import CARD_URL, CONF_AUTO_ADD, DOMAIN
+from .const import CARD_URL, CONF_AUTO_ADD, DOMAIN, STORE_CARD_URL
 from .coordinator import DynaframeCoordinator
 
 PLATFORMS = [
@@ -37,14 +37,19 @@ type DynaframeConfigEntry = ConfigEntry[DynaframeCoordinator]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the dashboard card and load it on every frontend."""
-    card = Path(__file__).parent / "frontend" / "dynaframe-card.js"
-    # Cache-bust with the file's mtime so browsers pick up every card change.
-    stamp = int((await hass.async_add_executor_job(card.stat)).st_mtime)
+    """Serve the dashboard cards and load them on every frontend."""
+    frontend = Path(__file__).parent / "frontend"
+    cards = {
+        CARD_URL: frontend / "dynaframe-card.js",
+        STORE_CARD_URL: frontend / "dynaframe-store-card.js",
+    }
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(card), cache_headers=False)]
+        [StaticPathConfig(url, str(path), cache_headers=False) for url, path in cards.items()]
     )
-    add_extra_js_url(hass, f"{CARD_URL}?v={stamp}")
+    for url, path in cards.items():
+        # Cache-bust with the file's mtime so browsers pick up every card change.
+        stamp = int((await hass.async_add_executor_job(path.stat)).st_mtime)
+        add_extra_js_url(hass, f"{url}?v={stamp}")
     return True
 
 

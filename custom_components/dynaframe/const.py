@@ -11,6 +11,7 @@ SCAN_INTERVAL = timedelta(seconds=10)
 SLOW_POLL_EVERY = 30
 
 CARD_URL = "/dynaframe_static/dynaframe-card.js"
+STORE_CARD_URL = "/dynaframe_static/dynaframe-store-card.js"
 
 TRANSITIONS = [
     "random",
