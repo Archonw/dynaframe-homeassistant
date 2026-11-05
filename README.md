@@ -1,6 +1,6 @@
 # Dynaframe for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz/)
 [![Validate](https://github.com/Archonw/dynaframe-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/Archonw/dynaframe-homeassistant/actions/workflows/validate.yml)
 
 Local control of [Dynaframe™](https://geek-toolkit.com/) digital picture frames from Home Assistant –
@@ -27,11 +27,16 @@ including automatic discovery and a dashboard card. No MQTT broker and no cloud 
 
 ### HACS (recommended)
 
-1. HACS → ⋮ → **Custom repositories**
-2. Repository: `https://github.com/Archonw/dynaframe-homeassistant`, type **Integration**
-3. Install **Dynaframe** and restart Home Assistant
-4. Frames on your network show up under *Settings → Devices & services → Discovered*.
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Archonw&repository=dynaframe-homeassistant&category=integration)
+
+1. Open **HACS**, search for **Dynaframe** and download it (or use the button above)
+2. Restart Home Assistant
+3. Frames on your network show up under *Settings → Devices & services → Discovered*.
    You can also add them via **Add integration → Dynaframe**, which scans your network.
+
+If Dynaframe does not show up in the HACS search (e.g. an older HACS version), add it as a
+custom repository: HACS → ⋮ → **Custom repositories** →
+`https://github.com/Archonw/dynaframe-homeassistant`, type **Integration**, then continue with step 1.
 
 ### Manual
 
@@ -128,10 +133,10 @@ Want your dashboard to look like the Dynaframe web UI? Install the **Dynaframe**
 Lokale Steuerung von Dynaframe™-Bilderrahmen in Home Assistant – mit automatischer Erkennung
 und eigener Dashboard-Karte, ohne MQTT und ohne Cloud.
 
-**Installation:** HACS → ⋮ → *Benutzerdefinierte Repositories* →
-`https://github.com/Archonw/dynaframe-homeassistant` als **Integration** hinzufügen,
-„Dynaframe“ installieren, Home Assistant neu starten. Gefundene Frames erscheinen unter
-*Einstellungen → Geräte & Dienste → Entdeckt*.
+**Installation:** In HACS nach **Dynaframe** suchen und herunterladen, Home Assistant neu
+starten. Gefundene Frames erscheinen unter *Einstellungen → Geräte & Dienste → Entdeckt*.
+Falls Dynaframe in der HACS-Suche nicht auftaucht: HACS → ⋮ → *Benutzerdefinierte Repositories* →
+`https://github.com/Archonw/dynaframe-homeassistant` als **Integration** hinzufügen.
 
 **Karte:** Dashboard bearbeiten → *Karte hinzufügen* → „Dynaframe“. Unter dem
 Lautstärkeregler klappt das Menü **Einstellungen** auf (Überblendung, Anzeigedauer,
