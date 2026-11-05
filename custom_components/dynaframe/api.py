@@ -17,6 +17,25 @@ class DynaframeError(Exception):
     """Raised when the frame cannot be reached or answers with an error."""
 
 
+# Fields of the full settings form that must be sent back unchanged.
+SLIDESHOW_FORM_KEYS = (
+    "durationSeconds",
+    "randomizeOrder",
+    "playbackOrderMode",
+    "overlaysEnabled",
+    "ytDlpEnabled",
+    "streamLoadingTransition",
+)
+
+
+class MissingSlideshowSettings(DynaframeError):
+    """The slideshow settings read lacks fields the settings form needs."""
+
+    def __init__(self, missing: list[str]) -> None:
+        super().__init__(f"slideshow settings missing: {', '.join(missing)}")
+        self.missing = missing
+
+
 class DynaframeApi:
     """Wrapper around the HTTP endpoints used by the Dynaframe web UI."""
 
@@ -136,18 +155,27 @@ class DynaframeApi:
         )
 
     async def set_default_overlay(self, file_name: str, slideshow: dict[str, Any]) -> None:
-        """Only the full settings form accepts the default overlay."""
+        """Set the default overlay.
+
+        Only the full settings form accepts the default overlay, so every other
+        field of that form is sent along with the values last read from
+        /Home/GetSlideshowSettings. Nothing is guessed: if the read lacks any of
+        those fields, MissingSlideshowSettings is raised and nothing is written.
+        """
+        missing = [key for key in SLIDESHOW_FORM_KEYS if slideshow.get(key) is None]
+        if missing:
+            raise MissingSlideshowSettings(missing)
 
         def flag(key: str) -> str:
-            return "true" if slideshow.get(key) else "false"
+            return "true" if slideshow[key] else "false"
 
         await self._request(
             "POST",
             "/Settings/UpdateSlideshowSettings",
             data={
-                "durationSeconds": str(slideshow.get("durationSeconds", 20)),
+                "durationSeconds": str(slideshow["durationSeconds"]),
                 "randomizeOrder": flag("randomizeOrder"),
-                "playbackOrderMode": slideshow.get("playbackOrderMode", ""),
+                "playbackOrderMode": str(slideshow["playbackOrderMode"]),
                 "defaultOverlay": file_name,
                 "overlaysEnabled": flag("overlaysEnabled"),
                 "ytDlpEnabled": flag("ytDlpEnabled"),

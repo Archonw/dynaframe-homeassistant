@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import DynaframeConfigEntry
-from .const import TRANSITIONS
+from .api import MissingSlideshowSettings
+from .const import DOMAIN, TRANSITIONS
 from .entity import DynaframeEntity
 
 
@@ -108,7 +110,14 @@ class OverlaySelect(DynaframeEntity, SelectEntity):
         return next((k for k, v in self._choices.items() if v == current), None)
 
     async def async_select_option(self, option: str) -> None:
-        await self.coordinator.api.set_default_overlay(
-            self._choices[option], self.coordinator.data.slideshow
-        )
+        try:
+            await self.coordinator.api.set_default_overlay(
+                self._choices[option], self.coordinator.data.slideshow
+            )
+        except MissingSlideshowSettings as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="slideshow_settings_incomplete",
+                translation_placeholders={"missing": ", ".join(err.missing)},
+            ) from err
         await self.coordinator.async_request_refresh()

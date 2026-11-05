@@ -185,6 +185,9 @@
   "exceptions": {
     "unknown_playlist": {
       "message": "Unbekannte Wiedergabeliste: {playlists}. Verfügbar: {available}"
+    },
+    "slideshow_settings_incomplete": {
+      "message": "Der Rahmen hat nicht alle Diashow-Einstellungen geliefert ({missing}). Das Standard-Overlay wurde nicht geändert, damit keine anderen Einstellungen überschrieben werden."
     }
   }
 }

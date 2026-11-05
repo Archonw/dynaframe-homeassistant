@@ -185,6 +185,9 @@
   "exceptions": {
     "unknown_playlist": {
       "message": "Unknown playlist: {playlists}. Available: {available}"
+    },
+    "slideshow_settings_incomplete": {
+      "message": "The frame did not report all slideshow settings ({missing}). The default overlay was not changed so that no other settings are overwritten."
     }
   }
 }
