@@ -15,19 +15,24 @@
       },
       "manual": {
         "title": "Dynaframe hinzufügen",
-        "description": "IP-Adresse oder Hostname des Frames.",
+        "description": "IP-Adresse oder Hostname des Frames. Ist der Frame mit dem Plugin Web Login geschützt, leg auf dessen Web-Login-Seite einen API-Schlüssel an und trag ihn hier ein; schalte HTTPS ein, wenn der Frame es nutzt (empfohlen, sonst geht der Schlüssel unverschlüsselt durchs Netz).",
         "data": {
-          "host": "Host"
+          "host": "Host",
+          "api_key": "API-Schlüssel (Web Login, optional)",
+          "use_https": "HTTPS verwenden"
         }
       }
     },
     "error": {
-      "cannot_connect": "Frame nicht erreichbar oder kein Dynaframe."
+      "cannot_connect": "Frame nicht erreichbar oder kein Dynaframe.",
+      "invalid_auth": "Der Frame verlangt eine Anmeldung: Der API-Schlüssel fehlt oder ist falsch, oder Web Login nimmt Schlüssel nur über HTTPS an.",
+      "cert_changed": "Das HTTPS-Zertifikat des Frames hat sich geändert. Hake „Dem aktuellen Zertifikat des Frames vertrauen“ an, wenn das so sein soll."
     },
     "abort": {
       "already_configured": "Dieser Frame ist bereits eingerichtet.",
       "cannot_connect": "Frame nicht erreichbar.",
-      "not_ipv4": "Nur IPv4-Adressen werden unterstützt."
+      "not_ipv4": "Nur IPv4-Adressen werden unterstützt.",
+      "needs_key": "Dieser Frame ist mit Web Login geschützt. Füge ihn von Hand mit einem API-Schlüssel hinzu."
     }
   },
   "entity": {
@@ -163,11 +168,19 @@
     "step": {
       "init": {
         "title": "Optionen",
-        "description": "Wenn aktiv, wird jeder im Netzwerk gefundene Dynaframe ohne Bestätigung eingerichtet. Gelöschte Frames landen unter „Ignoriert“, damit sie nicht wiederkommen. Gilt für alle Frames.",
+        "description": "Automatisch hinzufügen: Wenn aktiv, wird jeder im Netzwerk gefundene Dynaframe ohne Bestätigung eingerichtet; gelöschte Frames landen unter „Ignoriert“. Gilt für alle Frames.\n\nWeb Login für diesen Frame: API-Schlüssel gespeichert: {key_state}. Schlüsselfeld leer lassen, um ihn zu behalten, - eingeben, um ihn zu entfernen. Gemerktes Zertifikat (SHA-256): {fingerprint}",
         "data": {
-          "auto_add": "Neu gefundene Frames automatisch hinzufügen"
+          "auto_add": "Neu gefundene Frames automatisch hinzufügen",
+          "api_key": "API-Schlüssel (Web Login, optional)",
+          "use_https": "HTTPS verwenden",
+          "renew_certificate": "Dem aktuellen Zertifikat des Frames vertrauen (nach einer Änderung)"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Frame nicht erreichbar oder kein Dynaframe.",
+      "invalid_auth": "Der Frame verlangt eine Anmeldung: Der API-Schlüssel fehlt oder ist falsch, oder Web Login nimmt Schlüssel nur über HTTPS an.",
+      "cert_changed": "Das HTTPS-Zertifikat des Frames hat sich geändert. Hake „Dem aktuellen Zertifikat des Frames vertrauen“ an, wenn das so sein soll."
     }
   },
   "services": {

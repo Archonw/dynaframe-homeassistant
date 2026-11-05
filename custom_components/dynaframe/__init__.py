@@ -18,7 +18,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
 from .api import DynaframeApi
-from .const import CARD_URL, CONF_AUTO_ADD, DOMAIN, STORE_CARD_URL
+from .const import (
+    CARD_URL,
+    CONF_API_KEY,
+    CONF_AUTO_ADD,
+    CONF_FINGERPRINT,
+    CONF_USE_HTTPS,
+    DOMAIN,
+    STORE_CARD_URL,
+)
 from .coordinator import DynaframeCoordinator
 
 PLATFORMS = [
@@ -55,7 +63,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: DynaframeConfigEntry) -> bool:
     """Set up a Dynaframe from a config entry."""
-    api = DynaframeApi(async_get_clientsession(hass), entry.data[CONF_HOST])
+    api = DynaframeApi(
+        async_get_clientsession(hass),
+        entry.data[CONF_HOST],
+        api_key=entry.data.get(CONF_API_KEY),
+        use_https=entry.data.get(CONF_USE_HTTPS, False),
+        fingerprint=entry.data.get(CONF_FINGERPRINT),
+    )
     coordinator = DynaframeCoordinator(hass, entry, api)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator

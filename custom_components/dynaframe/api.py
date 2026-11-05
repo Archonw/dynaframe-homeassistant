@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import ssl
 import time
 from typing import Any
 
@@ -28,6 +30,43 @@ SLIDESHOW_FORM_KEYS = (
 )
 
 
+class DynaframeAuthError(DynaframeError):
+    """The frame asks for a login: API key missing, wrong or sent over http."""
+
+
+class DynaframeCertError(DynaframeError):
+    """The frame's HTTPS certificate is not the one that was pinned."""
+
+
+def _split_host(host: str) -> tuple[str, int | None]:
+    if host.startswith("["):
+        name, _, rest = host[1:].partition("]")
+        return name, int(rest[1:]) if rest.startswith(":") else None
+    if host.count(":") == 1:
+        name, port = host.split(":")
+        return name, int(port)
+    return host, None
+
+
+async def fetch_fingerprint(host: str) -> str:
+    """SHA-256 of the certificate the frame presents on HTTPS, to pin it."""
+    name, port = _split_host(host)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    try:
+        _reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(name, port or 443, ssl=context), 10
+        )
+    except (OSError, asyncio.TimeoutError) as err:
+        raise DynaframeError(f"https://{host}: {err}") from err
+    try:
+        der = writer.get_extra_info("ssl_object").getpeercert(binary_form=True)
+    finally:
+        writer.close()
+    return hashlib.sha256(der).hexdigest()
+
+
 class MissingSlideshowSettings(DynaframeError):
     """The slideshow settings read lacks fields the settings form needs."""
 
@@ -39,13 +78,26 @@ class MissingSlideshowSettings(DynaframeError):
 class DynaframeApi:
     """Wrapper around the HTTP endpoints used by the Dynaframe web UI."""
 
-    def __init__(self, session: aiohttp.ClientSession, host: str) -> None:
+    def __init__(
+        self,
+        session: aiohttp.ClientSession,
+        host: str,
+        api_key: str | None = None,
+        use_https: bool = False,
+        fingerprint: str | None = None,
+    ) -> None:
         self._session = session
         self.host = host
+        self.use_https = use_https
+        self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        # A pinned certificate replaces the CA check: the frame signs its own.
+        self._ssl: Any = None
+        if use_https:
+            self._ssl = aiohttp.Fingerprint(bytes.fromhex(fingerprint)) if fingerprint else False
 
     @property
     def base_url(self) -> str:
-        return f"http://{self.host}"
+        return f"{'https' if self.use_https else 'http'}://{self.host}"
 
     async def _request(
         self,
@@ -58,14 +110,29 @@ class DynaframeApi:
     ) -> Any:
         try:
             async with self._session.request(
-                method, f"{self.base_url}{path}", json=json, data=data, timeout=timeout
+                method,
+                f"{self.base_url}{path}",
+                json=json,
+                data=data,
+                timeout=timeout,
+                headers=self._headers,
+                ssl=self._ssl,
+                allow_redirects=False,
             ) as resp:
+                # Web Login answers 401 to a bad key and sends browsers
+                # (no key) to its login page.
+                if resp.status == 401 or (
+                    300 <= resp.status < 400 and "/dfr-login" in resp.headers.get("Location", "")
+                ):
+                    raise DynaframeAuthError(f"{method} {path}: login required (HTTP {resp.status})")
                 resp.raise_for_status()
                 if raw:
                     return await resp.read(), resp.content_type
                 if resp.content_type == "application/json":
                     return await resp.json()
                 return await resp.text()
+        except aiohttp.ServerFingerprintMismatch as err:
+            raise DynaframeCertError(f"{method} {path}: certificate changed") from err
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise DynaframeError(f"{method} {path}: {err}") from err
 

@@ -29,14 +29,55 @@ from homeassistant.helpers.selector import (
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .api import DynaframeApi, DynaframeError
-from .const import CONF_AUTO_ADD, DOMAIN
+from .api import (
+    DynaframeApi,
+    DynaframeAuthError,
+    DynaframeCertError,
+    DynaframeError,
+    fetch_fingerprint,
+)
+from .const import (
+    CONF_API_KEY,
+    CONF_AUTO_ADD,
+    CONF_FINGERPRINT,
+    CONF_RENEW_CERT,
+    CONF_USE_HTTPS,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 MANUAL = "manual"
 SCAN_TIMEOUT = aiohttp.ClientTimeout(total=2)
 SCAN_PARALLEL = 64
+
+
+async def async_check_frame(
+    hass, host: str, api_key: str | None, use_https: bool, fingerprint: str | None
+) -> tuple[str, str, str | None]:
+    """Connect like the integration will; return (frame_id, name, fingerprint).
+
+    With HTTPS and no fingerprint yet, the frame's certificate is pinned now
+    (it signs its own, so there is no authority to check it against).
+    """
+    if use_https and not fingerprint:
+        fingerprint = await fetch_fingerprint(host)
+    api = DynaframeApi(
+        async_get_clientsession(hass), host, api_key=api_key or None,
+        use_https=use_https, fingerprint=fingerprint,
+    )
+    info = await api.get_sync_status()
+    if not isinstance(info, dict) or not info.get("frameId"):
+        raise DynaframeError("not a Dynaframe")
+    return info["frameId"], info.get("frameName") or host, fingerprint if use_https else None
+
+
+def flow_error(err: DynaframeError) -> str:
+    if isinstance(err, DynaframeAuthError):
+        return "invalid_auth"
+    if isinstance(err, DynaframeCertError):
+        return "cert_changed"
+    return "cannot_connect"
 
 
 def pretty_name(name: str) -> str:
@@ -101,14 +142,6 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("Network scan found %s", found)
         return found
 
-    async def _async_probe(self, host: str) -> tuple[str, str]:
-        """Return (frame_id, frame_name) or raise DynaframeError."""
-        api = DynaframeApi(async_get_clientsession(self.hass), host)
-        info = await api.get_sync_status()
-        if not info.get("frameId"):
-            raise DynaframeError("not a Dynaframe")
-        return info["frameId"], info.get("frameName") or host
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -133,6 +166,10 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_manual()
             try:
                 return await self._async_create_from_host(user_input[CONF_HOST])
+            except DynaframeAuthError:
+                # Protected by Web Login: ask for the key.
+                self._host = user_input[CONF_HOST]
+                return await self.async_step_manual()
             except DynaframeError:
                 return self.async_abort(reason="cannot_connect")
         options = [
@@ -157,29 +194,50 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                return await self._async_create_from_host(user_input[CONF_HOST].strip())
-            except DynaframeError:
-                errors["base"] = "cannot_connect"
+                return await self._async_create_from_host(
+                    user_input[CONF_HOST].strip(),
+                    (user_input.get(CONF_API_KEY) or "").strip() or None,
+                    user_input.get(CONF_USE_HTTPS, False),
+                )
+            except DynaframeError as err:
+                errors["base"] = flow_error(err)
         return self.async_show_form(
             step_id="manual",
-            data_schema=vol.Schema({vol.Required(CONF_HOST): str}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST, default=self._host or ""): str,
+                    vol.Optional(CONF_API_KEY): str,
+                    vol.Optional(CONF_USE_HTTPS, default=False): bool,
+                }
+            ),
             errors=errors,
         )
 
-    async def _async_create_from_host(self, host: str) -> ConfigFlowResult:
-        frame_id, name = await self._async_probe(host)
+    async def _async_create_from_host(
+        self, host: str, api_key: str | None = None, use_https: bool = False
+    ) -> ConfigFlowResult:
+        frame_id, name, fingerprint = await async_check_frame(
+            self.hass, host, api_key, use_https, None
+        )
         # A pending discovery of the same frame must not block manual setup.
         await self.async_set_unique_id(frame_id, raise_on_progress=False)
-        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
-        return self.async_create_entry(
-            title=pretty_name(name), data={CONF_HOST: host, CONF_NAME: name}
-        )
+        data = {CONF_HOST: host, CONF_NAME: name}
+        if api_key:
+            data[CONF_API_KEY] = api_key
+        if use_https:
+            data[CONF_USE_HTTPS] = True
+            data[CONF_FINGERPRINT] = fingerprint
+        self._abort_if_unique_id_configured(updates=data)
+        return self.async_create_entry(title=pretty_name(name), data=data)
 
     async def _async_handle_discovery(self, host: str) -> ConfigFlowResult:
         _LOGGER.debug("Discovered possible Dynaframe at %s via %s", host, self.source)
         self._async_abort_entries_match({CONF_HOST: host})
         try:
-            frame_id, name = await self._async_probe(host)
+            frame_id, name, _fp = await async_check_frame(self.hass, host, None, False, None)
+        except DynaframeAuthError:
+            # Protected by Web Login; it can be added by hand with its key.
+            return self.async_abort(reason="needs_key")
         except DynaframeError:
             return self.async_abort(reason="cannot_connect")
         await self.async_set_unique_id(frame_id)
@@ -236,32 +294,63 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class DynaframeOptionsFlow(OptionsFlow):
-    """Options shared by all frames."""
+    """Auto-add (shared by all frames) and this frame's Web Login access."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        entry = self.config_entry
+        errors: dict[str, str] = {}
         if user_input is not None:
-            # Keep the setting identical on every frame.
-            for entry in self.hass.config_entries.async_entries(DOMAIN):
-                if (
-                    entry.entry_id != self.config_entry.entry_id
-                    and entry.source != SOURCE_IGNORE
-                ):
-                    self.hass.config_entries.async_update_entry(
-                        entry, options={**entry.options, **user_input}
-                    )
-            return self.async_create_entry(
-                data={**self.config_entry.options, **user_input}
-            )
+            data = dict(entry.data)
+            key = (user_input.get(CONF_API_KEY) or "").strip()
+            if key == "-":
+                data.pop(CONF_API_KEY, None)
+            elif key:
+                data[CONF_API_KEY] = key
+            use_https = user_input.get(CONF_USE_HTTPS, False)
+            fingerprint = data.get(CONF_FINGERPRINT)
+            if not use_https or user_input.get(CONF_RENEW_CERT):
+                fingerprint = None
+            try:
+                _id, _name, fingerprint = await async_check_frame(
+                    self.hass, data[CONF_HOST], data.get(CONF_API_KEY), use_https, fingerprint
+                )
+            except DynaframeError as err:
+                errors["base"] = flow_error(err)
+            if not errors:
+                data[CONF_USE_HTTPS] = use_https
+                if fingerprint:
+                    data[CONF_FINGERPRINT] = fingerprint
+                else:
+                    data.pop(CONF_FINGERPRINT, None)
+                self.hass.config_entries.async_update_entry(entry, data=data)
+                shared = {CONF_AUTO_ADD: user_input.get(CONF_AUTO_ADD, False)}
+                # Keep the auto-add setting identical on every frame.
+                for other in self.hass.config_entries.async_entries(DOMAIN):
+                    if other.entry_id != entry.entry_id and other.source != SOURCE_IGNORE:
+                        self.hass.config_entries.async_update_entry(
+                            other, options={**other.options, **shared}
+                        )
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return self.async_create_entry(data={**entry.options, **shared})
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_AUTO_ADD,
-                        default=self.config_entry.options.get(CONF_AUTO_ADD, False),
-                    ): bool
+                        CONF_AUTO_ADD, default=entry.options.get(CONF_AUTO_ADD, False)
+                    ): bool,
+                    vol.Optional(CONF_API_KEY): str,
+                    vol.Required(
+                        CONF_USE_HTTPS, default=entry.data.get(CONF_USE_HTTPS, False)
+                    ): bool,
+                    vol.Optional(CONF_RENEW_CERT, default=False): bool,
                 }
             ),
+            description_placeholders={
+                "key_state": "✓" if entry.data.get(CONF_API_KEY) else "–",
+                "fingerprint": entry.data.get(CONF_FINGERPRINT) or "–",
+            },
+            errors=errors,
         )
