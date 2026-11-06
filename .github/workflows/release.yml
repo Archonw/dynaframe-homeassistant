@@ -1,0 +1,31 @@
+name: Release
+
+# Creates the GitHub release vX.Y.Z (which HACS offers as an update) as soon as
+# main carries a version in manifest.json that has no release yet. To release:
+# raise "version" in custom_components/dynaframe/manifest.json and merge to main.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release for the manifest version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version custom_components/dynaframe/manifest.json)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists, nothing to do."
+            exit 0
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes
+          echo "Created release $tag"
