@@ -43,6 +43,15 @@ custom repository: HACS → ⋮ → **Custom repositories** →
 Copy `custom_components/dynaframe` into the `custom_components` folder of your
 Home Assistant configuration and restart.
 
+## Frames with Web Login
+
+If the frame is protected by the **Web Login** plugin, create an API key on the
+plugin page and enter it when adding the frame (or later under **Configure**).
+Tick **Use HTTPS** so the key never travels in plain text: the integration
+remembers the frame's own certificate on first contact and refuses any other
+one afterwards. If the frame gets a new certificate, tick **Trust the frame's
+current certificate** in the options.
+
 ## Dashboard card
 
 Edit a dashboard → **Add card** → search for **Dynaframe**, or use YAML:

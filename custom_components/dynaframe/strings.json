@@ -15,19 +15,24 @@
       },
       "manual": {
         "title": "Add Dynaframe",
-        "description": "IP address or hostname of the frame.",
+        "description": "IP address or hostname of the frame. If the frame is protected by the Web Login plugin, create an API key on its Web Login page and enter it here; switch on HTTPS if the frame uses it (recommended, otherwise the key travels unencrypted).",
         "data": {
-          "host": "Host"
+          "host": "Host",
+          "api_key": "API key (Web Login, optional)",
+          "use_https": "Use HTTPS"
         }
       }
     },
     "error": {
-      "cannot_connect": "Frame unreachable or not a Dynaframe."
+      "cannot_connect": "Frame unreachable or not a Dynaframe.",
+      "invalid_auth": "The frame asks for a login: the API key is missing or wrong, or Web Login only accepts keys over HTTPS.",
+      "cert_changed": "The frame's HTTPS certificate has changed. Tick \"Trust the frame's current certificate\" if you expected that."
     },
     "abort": {
       "already_configured": "This frame is already configured.",
       "cannot_connect": "Frame unreachable.",
-      "not_ipv4": "Only IPv4 addresses are supported."
+      "not_ipv4": "Only IPv4 addresses are supported.",
+      "needs_key": "This frame is protected by Web Login. Add it by hand with an API key."
     }
   },
   "entity": {
@@ -163,11 +168,19 @@
     "step": {
       "init": {
         "title": "Options",
-        "description": "When on, every Dynaframe found on the network is set up without confirmation. Deleted frames are moved to \"Ignored\" so they do not come back. Applies to all frames.",
+        "description": "Auto-add: when on, every Dynaframe found on the network is set up without confirmation; deleted frames are moved to \"Ignored\". Applies to all frames.\n\nWeb Login for this frame: API key saved: {key_state}. Leave the key field empty to keep it, enter - to remove it. Pinned certificate (SHA-256): {fingerprint}",
         "data": {
-          "auto_add": "Add newly discovered frames automatically"
+          "auto_add": "Add newly discovered frames automatically",
+          "api_key": "API key (Web Login, optional)",
+          "use_https": "Use HTTPS",
+          "renew_certificate": "Trust the frame's current certificate (after it changed)"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Frame unreachable or not a Dynaframe.",
+      "invalid_auth": "The frame asks for a login: the API key is missing or wrong, or Web Login only accepts keys over HTTPS.",
+      "cert_changed": "The frame's HTTPS certificate has changed. Tick \"Trust the frame's current certificate\" if you expected that."
     }
   },
   "services": {

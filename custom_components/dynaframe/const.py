@@ -5,6 +5,11 @@ from datetime import timedelta
 DOMAIN = "dynaframe"
 
 CONF_AUTO_ADD = "auto_add"
+# Frames protected by the Web Login plugin.
+CONF_API_KEY = "api_key"
+CONF_USE_HTTPS = "use_https"
+CONF_FINGERPRINT = "fingerprint"
+CONF_RENEW_CERT = "renew_certificate"
 
 SCAN_INTERVAL = timedelta(seconds=10)
 # Playlists, update status and peer frames change rarely; refresh every n polls.

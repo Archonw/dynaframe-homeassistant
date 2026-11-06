@@ -26,5 +26,5 @@ class DynaframeEntity(CoordinatorEntity[DynaframeCoordinator]):
             manufacturer="Dynaframe",
             model="Dynaframe",
             sw_version=coordinator.data.update.get("installedVersion"),
-            configuration_url=f"http://{entry.data[CONF_HOST]}",
+            configuration_url=f"{'https' if entry.data.get('use_https') else 'http'}://{entry.data[CONF_HOST]}",
         )
