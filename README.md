@@ -176,3 +176,9 @@ gefundene Frames ohne Bestätigung eingerichtet werden.
 ## License
 
 [MIT](LICENSE) – not affiliated with or endorsed by Dynaframe™.
+
+## Releasing
+
+Raise `version` in `custom_components/dynaframe/manifest.json` and merge to `main`.
+The **Release** workflow then creates the release `vX.Y.Z` (with notes from the merged
+pull requests), and HACS offers the update.
