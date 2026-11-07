@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import aiohttp
@@ -39,6 +40,7 @@ from .api import (
 from .const import (
     CONF_API_KEY,
     CONF_AUTO_ADD,
+    CONF_AUTO_TRUST_CERT,
     CONF_FINGERPRINT,
     CONF_RENEW_CERT,
     CONF_USE_HTTPS,
@@ -274,6 +276,56 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return await self._async_handle_discovery(discovery_info[CONF_HOST])
 
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """The frame's certificate changed (or it is another frame now)."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self._get_reauth_entry()
+        host = entry.data[CONF_HOST]
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                frame_id, _name, fingerprint = await async_check_frame(
+                    self.hass, host, entry.data.get(CONF_API_KEY),
+                    entry.data.get(CONF_USE_HTTPS, False), None,
+                )
+            except DynaframeError as err:
+                errors["base"] = flow_error(err)
+            else:
+                if frame_id != entry.unique_id:
+                    return self.async_abort(reason="wrong_frame")
+                data = {**entry.data, CONF_AUTO_TRUST_CERT: user_input[CONF_AUTO_TRUST_CERT]}
+                if fingerprint:
+                    data[CONF_FINGERPRINT] = fingerprint
+                return self.async_update_reload_and_abort(entry, data=data)
+        try:
+            current = await fetch_fingerprint(host) if entry.data.get(CONF_USE_HTTPS) else "–"
+        except DynaframeError:
+            current = "?"
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_AUTO_TRUST_CERT,
+                        default=entry.data.get(CONF_AUTO_TRUST_CERT, False),
+                    ): bool,
+                }
+            ),
+            description_placeholders={
+                "name": entry.title,
+                "host": host,
+                "old": entry.data.get(CONF_FINGERPRINT) or "–",
+                "new": current,
+            },
+            errors=errors,
+        )
+
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -320,6 +372,9 @@ class DynaframeOptionsFlow(OptionsFlow):
                 errors["base"] = flow_error(err)
             if not errors:
                 data[CONF_USE_HTTPS] = use_https
+                data[CONF_AUTO_TRUST_CERT] = use_https and user_input.get(
+                    CONF_AUTO_TRUST_CERT, False
+                )
                 if fingerprint:
                     data[CONF_FINGERPRINT] = fingerprint
                 else:
@@ -346,6 +401,10 @@ class DynaframeOptionsFlow(OptionsFlow):
                         CONF_USE_HTTPS, default=entry.data.get(CONF_USE_HTTPS, False)
                     ): bool,
                     vol.Optional(CONF_RENEW_CERT, default=False): bool,
+                    vol.Required(
+                        CONF_AUTO_TRUST_CERT,
+                        default=entry.data.get(CONF_AUTO_TRUST_CERT, False),
+                    ): bool,
                 }
             ),
             description_placeholders={

@@ -7,11 +7,19 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import DynaframeApi, DynaframeError
-from .const import DOMAIN, SCAN_INTERVAL, SLOW_POLL_EVERY
+from .api import DynaframeApi, DynaframeCertError, DynaframeError, fetch_fingerprint
+from .const import (
+    CONF_AUTO_TRUST_CERT,
+    CONF_FINGERPRINT,
+    DOMAIN,
+    SCAN_INTERVAL,
+    SLOW_POLL_EVERY,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,6 +107,40 @@ class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):
         self._metadata: dict[str, dict[str, Any]] = {}
 
     async def _async_update_data(self) -> DynaframeData:
+        try:
+            return await self._async_fetch()
+        except DynaframeCertError as err:
+            if not self.config_entry.data.get(CONF_AUTO_TRUST_CERT):
+                # Ask the user (repair notification) instead of retrying forever.
+                raise ConfigEntryAuthFailed(str(err)) from err
+            await self._async_trust_new_certificate()
+            return await self._async_fetch()
+
+    async def _async_trust_new_certificate(self) -> None:
+        """Pin the frame's new certificate if the same frame answers behind it."""
+        entry = self.config_entry
+        old = entry.data.get(CONF_FINGERPRINT)
+        try:
+            new = await fetch_fingerprint(entry.data[CONF_HOST])
+            self.api.set_fingerprint(new)
+            info = await self.api.get_sync_status()
+            frame_id = info.get("frameId") if isinstance(info, dict) else None
+        except DynaframeError as err:
+            self.api.set_fingerprint(old)
+            raise UpdateFailed(f"certificate changed, renewing failed: {err}") from err
+        if frame_id != entry.unique_id:
+            self.api.set_fingerprint(old)
+            raise ConfigEntryAuthFailed(
+                f"certificate changed and {entry.data[CONF_HOST]} is another frame now"
+            )
+        _LOGGER.warning(
+            "%s presents a new HTTPS certificate, trusting it (SHA-256 %s)", entry.title, new
+        )
+        self.hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_FINGERPRINT: new}
+        )
+
+    async def _async_fetch(self) -> DynaframeData:
         previous = self.data or DynaframeData()
         slow = self._polls % SLOW_POLL_EVERY == 0
         self._polls += 1
@@ -122,6 +164,9 @@ class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):
                     self._metadata[name] = await self.api.get_transition_metadata(name)
                 data.transition_metadata = self._metadata[name]
                 data.transition_settings = await self.api.get_transition_settings(name)
+        except DynaframeCertError:
+            self._polls = 0
+            raise
         except DynaframeError as err:
             self._polls = 0  # refresh everything once the frame is back
             raise UpdateFailed(str(err)) from err

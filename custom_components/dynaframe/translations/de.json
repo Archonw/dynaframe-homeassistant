@@ -21,6 +21,13 @@
           "api_key": "API-Schlüssel (Web Login, optional)",
           "use_https": "HTTPS verwenden"
         }
+      },
+      "reauth_confirm": {
+        "title": "Zertifikat des Frames geändert",
+        "description": "{name} ({host}) zeigt jetzt ein anderes HTTPS-Zertifikat als das, das Home Assistant sich gemerkt hat, deshalb wurde die Verbindung gestoppt.\n\nGemerkt (SHA-256): {old}\nJetzt: {new}\n\nWenn du den Frame aktualisiert oder neu gestartet hast, ist das normal: Absenden, um dem neuen Zertifikat zu vertrauen. Wenn nicht, prüfe zuerst dein Netzwerk.",
+        "data": {
+          "auto_trust_certificate": "Neuem Zertifikat künftig automatisch vertrauen (wenn derselbe Frame auf den API-Schlüssel antwortet)"
+        }
       }
     },
     "error": {
@@ -32,7 +39,9 @@
       "already_configured": "Dieser Frame ist bereits eingerichtet.",
       "cannot_connect": "Frame nicht erreichbar.",
       "not_ipv4": "Nur IPv4-Adressen werden unterstützt.",
-      "needs_key": "Dieser Frame ist mit Web Login geschützt. Füge ihn von Hand mit einem API-Schlüssel hinzu."
+      "needs_key": "Dieser Frame ist mit Web Login geschützt. Füge ihn von Hand mit einem API-Schlüssel hinzu.",
+      "wrong_frame": "Unter dieser Adresse antwortet jetzt ein anderes Gerät, nicht dieser Frame.",
+      "reauth_successful": "Dem neuen Zertifikat wird vertraut, der Frame ist wieder verbunden."
     }
   },
   "entity": {
@@ -173,7 +182,8 @@
           "auto_add": "Neu gefundene Frames automatisch hinzufügen",
           "api_key": "API-Schlüssel (Web Login, optional)",
           "use_https": "HTTPS verwenden",
-          "renew_certificate": "Dem aktuellen Zertifikat des Frames vertrauen (nach einer Änderung)"
+          "renew_certificate": "Dem aktuellen Zertifikat des Frames vertrauen (nach einer Änderung)",
+          "auto_trust_certificate": "Neuem Zertifikat künftig automatisch vertrauen (wenn derselbe Frame auf den API-Schlüssel antwortet)"
         }
       }
     },
