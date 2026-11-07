@@ -21,6 +21,13 @@
           "api_key": "API key (Web Login, optional)",
           "use_https": "Use HTTPS"
         }
+      },
+      "reauth_confirm": {
+        "title": "Frame certificate changed",
+        "description": "{name} ({host}) now presents a different HTTPS certificate than the one Home Assistant remembered, so the connection was stopped.\n\nRemembered (SHA-256): {old}\nNow: {new}\n\nIf you updated or restarted the frame, that is expected: submit to trust the new certificate. If not, check your network first.",
+        "data": {
+          "auto_trust_certificate": "Trust a new certificate automatically next time (if the same frame answers to the API key)"
+        }
       }
     },
     "error": {
@@ -32,7 +39,9 @@
       "already_configured": "This frame is already configured.",
       "cannot_connect": "Frame unreachable.",
       "not_ipv4": "Only IPv4 addresses are supported.",
-      "needs_key": "This frame is protected by Web Login. Add it by hand with an API key."
+      "needs_key": "This frame is protected by Web Login. Add it by hand with an API key.",
+      "wrong_frame": "Another device answers at this address now, not this frame.",
+      "reauth_successful": "The new certificate is trusted, the frame is connected again."
     }
   },
   "entity": {
@@ -173,7 +182,8 @@
           "auto_add": "Add newly discovered frames automatically",
           "api_key": "API key (Web Login, optional)",
           "use_https": "Use HTTPS",
-          "renew_certificate": "Trust the frame's current certificate (after it changed)"
+          "renew_certificate": "Trust the frame's current certificate (after it changed)",
+          "auto_trust_certificate": "Trust a new certificate automatically next time (if the same frame answers to the API key)"
         }
       }
     },

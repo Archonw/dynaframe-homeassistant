@@ -49,8 +49,13 @@ If the frame is protected by the **Web Login** plugin, create an API key on the
 plugin page and enter it when adding the frame (or later under **Configure**).
 Tick **Use HTTPS** so the key never travels in plain text: the integration
 remembers the frame's own certificate on first contact and refuses any other
-one afterwards. If the frame gets a new certificate, tick **Trust the frame's
-current certificate** in the options.
+one afterwards. If the frame gets a new certificate (for example after an
+update), Home Assistant stops the connection and shows a repair notification
+with the old and new fingerprint; confirm it to trust the new certificate.
+Tick **Trust a new certificate automatically next time** (there or in the
+options) to have the integration re-pin it by itself, as long as the same frame
+(same frame ID) answers behind the new certificate. You can still renew it by
+hand with **Trust the frame's current certificate** in the options.
 
 ## Dashboard card
 

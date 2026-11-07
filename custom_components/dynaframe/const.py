@@ -10,6 +10,8 @@ CONF_API_KEY = "api_key"
 CONF_USE_HTTPS = "use_https"
 CONF_FINGERPRINT = "fingerprint"
 CONF_RENEW_CERT = "renew_certificate"
+# Re-pin a changed certificate by itself if the same frame answers to the key.
+CONF_AUTO_TRUST_CERT = "auto_trust_certificate"
 
 SCAN_INTERVAL = timedelta(seconds=10)
 # Playlists, update status and peer frames change rarely; refresh every n polls.

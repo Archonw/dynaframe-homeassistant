@@ -93,7 +93,11 @@ class DynaframeApi:
         # A pinned certificate replaces the CA check: the frame signs its own.
         self._ssl: Any = None
         if use_https:
-            self._ssl = aiohttp.Fingerprint(bytes.fromhex(fingerprint)) if fingerprint else False
+            self.set_fingerprint(fingerprint)
+
+    def set_fingerprint(self, fingerprint: str | None) -> None:
+        """Pin another certificate (after the frame got a new one)."""
+        self._ssl = aiohttp.Fingerprint(bytes.fromhex(fingerprint)) if fingerprint else False
 
     @property
     def base_url(self) -> str:
