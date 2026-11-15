@@ -43,9 +43,26 @@ custom repository: HACS → ⋮ → **Custom repositories** →
 Copy `custom_components/dynaframe` into the `custom_components` folder of your
 Home Assistant configuration and restart.
 
+## Frames with DynaFrame's own login (HTTPS)
+
+Since DynaFrame 2026.11.14 the frame can protect its web page with its own login
+and HTTPS. Then the frame only answers with an API key over HTTPS:
+
+1. In DynaFrame's settings, under **API keys**, create a **Full REST API Key**
+   (a Playback key is not enough for settings, transitions and reboot).
+2. In Home Assistant open the frame → **Configure**, enter the key and tick
+   **Use HTTPS** (and **Trust the frame's current certificate** if the frame was
+   set up over http before).
+
+From 1.5.0 the integration talks to the frame's Engine API (`/engine-proxy/...`),
+which works with and without the login. The preview picture comes from the web
+page itself and stays empty while DynaFrame's login is on, because DynaFrame does
+not accept API keys there. Frames with the login are not found by the network
+scan; add them by hand with their address and the key.
+
 ## Frames with Web Login
 
-If the frame is protected by the **Web Login** plugin, create an API key on the
+If the frame is protected by the older **Web Login** plugin, create an API key on the
 plugin page and enter it when adding the frame (or later under **Configure**).
 Tick **Use HTTPS** so the key never travels in plain text: the integration
 remembers the frame's own certificate on first contact and refuses any other

@@ -82,7 +82,8 @@ class DynaframeData:
 
     @property
     def display_on(self) -> bool:
-        return self.display.get("state") == "on" and not self.status.get("isSleeping")
+        # No state reported (some displays): go by the sleep state alone.
+        return self.display.get("state", "on") == "on" and not self.status.get("isSleeping")
 
 
 class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):

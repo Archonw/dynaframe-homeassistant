@@ -9,10 +9,19 @@ import time
 from typing import Any
 
 import aiohttp
+from urllib.parse import quote
 
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 # The frame builds a mixed playlist synchronously; ~8000 items took 80 s.
 PLAY_TIMEOUT = aiohttp.ClientTimeout(total=300)
+
+
+def _size(value: float) -> str:
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if value < 1024 or unit == "TB":
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= 1024
+    return str(value)
 
 
 class DynaframeError(Exception):
@@ -124,10 +133,13 @@ class DynaframeApi:
                 allow_redirects=False,
             ) as resp:
                 # Web Login answers 401 to a bad key and sends browsers
-                # (no key) to its login page.
+                # (no key) to its login page. DynaFrame's own login (2026.11.14+)
+                # answers 401 over HTTPS and, over plain http, sends everything
+                # except a few guest pages to /Connect or refuses it (403).
+                location = resp.headers.get("Location", "")
                 if resp.status == 401 or (
-                    300 <= resp.status < 400 and "/dfr-login" in resp.headers.get("Location", "")
-                ):
+                    300 <= resp.status < 400 and ("/dfr-login" in location or "/Connect" in location)
+                ) or (resp.status == 403 and not self.use_https):
                     raise DynaframeAuthError(f"{method} {path}: login required (HTTP {resp.status})")
                 resp.raise_for_status()
                 if raw:
@@ -141,32 +153,48 @@ class DynaframeApi:
             raise DynaframeError(f"{method} {path}: {err}") from err
 
     # --- read -------------------------------------------------------------
+    # Everything goes to the Engine through the web page's /engine-proxy/. That
+    # works with and without DynaFrame's own login; with the login on, a
+    # "Full REST" API key is accepted only there (and only over HTTPS).
+    async def _engine(self, method: str, path: str, **kwargs: Any) -> Any:
+        return await self._request(method, f"/engine-proxy{path}", **kwargs)
+
     async def get_sync_status(self) -> dict[str, Any]:
-        return await self._request("GET", "/Sync/GetSyncStatus")
+        return await self._engine("GET", "/sync/status")
 
     async def get_status(self) -> dict[str, Any]:
-        return await self._request("GET", "/Home/GetStatus")
+        return await self._engine("GET", "/slideshow/status")
 
     async def get_display_power(self) -> dict[str, Any]:
-        return await self._request("GET", "/Home/GetDisplayPower")
+        # Some displays do not report their power state; the Engine then
+        # answers with an error. That must not take the whole frame offline.
+        try:
+            data = await self._engine("GET", "/display/power")
+        except DynaframeAuthError:
+            raise
+        except DynaframeError:
+            return {}
+        return data if isinstance(data, dict) and data.get("success") is not False else {}
 
     async def get_volume(self) -> dict[str, Any]:
-        return await self._request("GET", "/Settings/GetAudioVolume")
+        return await self._engine("GET", "/api/v1/system/volume")
 
     async def get_slideshow_settings(self) -> dict[str, Any]:
-        return await self._request("GET", "/Home/GetSlideshowSettings")
+        return await self._engine("GET", "/settings/slideshow")
 
     async def get_playlists(self) -> list[dict[str, Any]]:
-        return await self._request("GET", "/engine-proxy/playlists")
+        return await self._engine("GET", "/playlists")
 
     async def get_playback_selection(self) -> dict[str, Any]:
-        return await self._request("GET", "/engine-proxy/playback-selection/state")
+        return await self._engine("GET", "/playback-selection/state")
 
     async def get_update_status(self) -> dict[str, Any]:
-        data = await self._request("GET", "/Update/PresenceStatus")
+        data = await self._engine("GET", "/api/v1/system/update-presence/status")
         return data.get("status") or {}
 
     async def get_preview(self, key: str) -> tuple[bytes, str]:
+        # Only the web page makes previews; with DynaFrame's login on it does
+        # not accept API keys, so the picture is then missing (no error).
         return await self._request(
             "GET",
             f"/Home/CaptureRendererPreview?v={key}&t={int(time.time() * 1000)}",
@@ -175,93 +203,76 @@ class DynaframeApi:
 
     # --- control ----------------------------------------------------------
     async def next(self) -> None:
-        await self._request("POST", "/Home/Next")
+        await self._engine("POST", "/slideshow/next")
 
     async def previous(self) -> None:
-        await self._request("POST", "/Home/Previous")
+        await self._engine("POST", "/slideshow/previous")
 
     async def pause(self) -> None:
-        await self._request("POST", "/Home/Pause")
+        await self._engine("POST", "/slideshow/pause")
 
     async def resume(self) -> None:
-        await self._request("POST", "/Home/Resume")
+        await self._engine("POST", "/slideshow/resume")
 
     async def stop(self) -> None:
-        await self._request("POST", "/engine-proxy/slideshow/stop")
+        await self._engine("POST", "/slideshow/stop")
 
     async def set_display_power(self, on: bool) -> None:
         await self._request(
-            "POST", "/Home/SetDisplayPower", json={"state": "on" if on else "off"}
+            "POST", "/engine-proxy/display/power", json={"state": "on" if on else "off"}
         )
 
     async def set_volume(self, value: int) -> None:
-        await self._request("POST", "/Settings/SetAudioVolume", json={"value": value})
+        await self._engine("POST", "/api/v1/system/volume", json={"value": value})
 
     async def set_mute(self, muted: bool) -> None:
-        await self._request("POST", "/Settings/SetAudioMute", json={"value": muted})
+        await self._engine("POST", "/api/v1/system/mute", json={"muted": muted})
 
     async def update_slideshow_settings(self, **settings: Any) -> None:
-        await self._request("POST", "/Home/UpdateSlideshowSettings", json=settings)
+        await self._engine("POST", "/settings/slideshow", json=settings)
 
     async def get_transition_settings(self, name: str) -> dict[str, Any]:
-        return await self._request("GET", f"/Settings/GetShaderSettings?shaderName={name}")
+        return await self._engine("GET", f"/renderer/shaders/{quote(name, safe='')}/settings")
 
     async def get_transition_metadata(self, name: str) -> dict[str, Any]:
-        return await self._request("GET", f"/Settings/GetShaderMetadata?shaderName={name}")
+        return await self._engine("GET", f"/renderer/shaders/{quote(name, safe='')}/metadata")
 
     async def set_transition(self, name: str) -> None:
-        await self._request("POST", f"/Settings/SetShader?shader={name}")
+        # Also stored as the default transition (settings/slideshow).
+        await self._engine("POST", "/transition", json={"transition": name})
 
     async def set_transition_settings(self, name: str, settings: dict[str, Any]) -> None:
-        await self._request(
-            "POST", f"/Settings/SetShaderSettings?shaderName={name}", json=settings
+        await self._engine(
+            "POST", f"/renderer/shaders/{quote(name, safe='')}/settings", json=settings
         )
 
     async def list_overlays(self) -> list[dict[str, Any]]:
-        return await self._request("GET", "/Overlay/ListOverlays")
+        return await self._engine("GET", "/overlay/list")
 
     async def set_overlays_enabled(self, enabled: bool) -> None:
-        await self._request(
-            "POST", "/Overlay/SetOverlayMasterSetting", json={"enabled": enabled}
-        )
+        await self._engine("POST", "/settings/slideshow", json={"overlaysEnabled": enabled})
 
     async def set_default_overlay(self, file_name: str, slideshow: dict[str, Any]) -> None:
-        """Set the default overlay.
-
-        Only the full settings form accepts the default overlay, so every other
-        field of that form is sent along with the values last read from
-        /Home/GetSlideshowSettings. Nothing is guessed: if the read lacks any of
-        those fields, MissingSlideshowSettings is raised and nothing is written.
-        """
-        missing = [key for key in SLIDESHOW_FORM_KEYS if slideshow.get(key) is None]
-        if missing:
-            raise MissingSlideshowSettings(missing)
-
-        def flag(key: str) -> str:
-            return "true" if slideshow[key] else "false"
-
-        await self._request(
-            "POST",
-            "/Settings/UpdateSlideshowSettings",
-            data={
-                "durationSeconds": str(slideshow["durationSeconds"]),
-                "randomizeOrder": flag("randomizeOrder"),
-                "playbackOrderMode": str(slideshow["playbackOrderMode"]),
-                "defaultOverlay": file_name,
-                "overlaysEnabled": flag("overlaysEnabled"),
-                "ytDlpEnabled": flag("ytDlpEnabled"),
-                "streamLoadingTransition": flag("streamLoadingTransition"),
-            },
-        )
+        """Set the default overlay (the Engine takes single settings)."""
+        await self._engine("POST", "/settings/slideshow", json={"defaultOverlay": file_name})
 
     async def get_memory(self) -> dict[str, Any]:
-        return await self._request("GET", "/Log/GetMemoryStats")
+        info = await self._engine("GET", "/system/info")
+        memory = (info or {}).get("memory") or {}
+        total, available = memory.get("total"), memory.get("available")
+        if not total or available is None:
+            return {}
+        return {
+            "percentUsed": round((total - available) * 100 / total, 1),
+            "totalFormatted": _size(total),
+            "availableFormatted": _size(available),
+        }
 
     async def get_disks(self) -> list[dict[str, Any]]:
-        return await self._request("GET", "/engine-proxy/system/diskspace")
+        return await self._engine("GET", "/system/diskspace")
 
     async def reboot(self) -> None:
-        await self._request("POST", "/Settings/PowerControl?action=restart-system")
+        await self._engine("POST", "/api/v1/system/power/restart-system")
 
     async def play_playlists(self, playlist_ids: list[int], name: str) -> None:
         await self._request(
