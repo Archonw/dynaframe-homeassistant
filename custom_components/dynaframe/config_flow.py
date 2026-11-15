@@ -130,7 +130,7 @@ class DynaframeConfigFlow(ConfigFlow, domain=DOMAIN):
             async with semaphore:
                 try:
                     async with session.get(
-                        f"http://{ip}/Sync/GetSyncStatus", timeout=SCAN_TIMEOUT
+                        f"http://{ip}/engine-proxy/sync/status", timeout=SCAN_TIMEOUT
                     ) as resp:
                         if resp.status != 200:
                             return
