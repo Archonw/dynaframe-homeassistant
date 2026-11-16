@@ -14,6 +14,8 @@ from urllib.parse import quote
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 # The frame builds a mixed playlist synchronously; ~8000 items took 80 s.
 PLAY_TIMEOUT = aiohttp.ClientTimeout(total=300)
+# NFC scans are polled every second; a slow answer must not pile up requests.
+NFC_TIMEOUT = aiohttp.ClientTimeout(total=3)
 
 
 def _size(value: float) -> str:
@@ -200,6 +202,26 @@ class DynaframeApi:
             f"/Home/CaptureRendererPreview?v={key}&t={int(time.time() * 1000)}",
             raw=True,
         )
+
+    async def get_nfc_readers(self) -> list[dict[str, Any]]:
+        """NFC readers registered on the frame (wired or Wi-Fi)."""
+        try:
+            data = await self._engine("GET", "/nfc/devices")
+        except DynaframeAuthError:
+            raise
+        except DynaframeError:
+            return []  # DynaFrame without NFC support
+        return data if isinstance(data, list) else []
+
+    async def get_recent_nfc_scan(self) -> dict[str, Any] | None:
+        """Last tag scanned on this frame; the Engine answers 404 until one was."""
+        try:
+            data = await self._engine("GET", "/nfc/recent-scan", timeout=NFC_TIMEOUT)
+        except DynaframeAuthError:
+            raise
+        except DynaframeError:
+            return None
+        return data if isinstance(data, dict) and data.get("tagId") else None
 
     # --- control ----------------------------------------------------------
     async def next(self) -> None:

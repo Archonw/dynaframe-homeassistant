@@ -45,6 +45,7 @@ class DynaframeData:
     disks: list[dict[str, Any]] = field(default_factory=list)
     transition_settings: dict[str, Any] = field(default_factory=dict)
     transition_metadata: dict[str, Any] = field(default_factory=dict)
+    nfc_readers: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def transition(self) -> str | None:
@@ -158,6 +159,7 @@ class DynaframeCoordinator(DataUpdateCoordinator[DynaframeData]):
                 overlays=await self.api.list_overlays() if slow else previous.overlays,
                 memory=await self.api.get_memory() if slow else previous.memory,
                 disks=await self.api.get_disks() if slow else previous.disks,
+                nfc_readers=await self.api.get_nfc_readers() if slow else previous.nfc_readers,
             )
             data.peers = data.sync.get("discoveredFrames") or []
             if name := data.transition:

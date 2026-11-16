@@ -16,6 +16,8 @@ CONF_AUTO_TRUST_CERT = "auto_trust_certificate"
 SCAN_INTERVAL = timedelta(seconds=10)
 # Playlists, update status and peer frames change rarely; refresh every n polls.
 SLOW_POLL_EVERY = 30
+# Frames with an NFC reader are asked for new tag scans this often.
+NFC_SCAN_INTERVAL = timedelta(seconds=1)
 
 CARD_URL = "/dynaframe_static/dynaframe-card.js"
 STORE_CARD_URL = "/dynaframe_static/dynaframe-store-card.js"

@@ -20,6 +20,7 @@ including automatic discovery and a dashboard card. No MQTT broker and no cloud 
 - **Diagnostics**: sync role, memory and storage usage, version, update available
 - **Metadata** of the current image (title, author, date taken, camera, keywords, tags …)
 - **Reboot** button
+- **NFC tags**: tags scanned on a frame's NFC reader show up as Home Assistant tags
 - **Dashboard card** that ships with the integration – nothing to add under *Resources*
 - **Store downloads card** for your own DynaFrame Pro store on GitHub: total, downloads per pack and per day
 
@@ -150,8 +151,14 @@ Want your dashboard to look like the Dynaframe web UI? Install the **Dynaframe**
 ## Notes
 
 - The integration uses the frame's local web API (port 80) and polls every 10 seconds.
-- Restarting only the Dynaframe app, shutting the device down, changing the sync role and
-  NFC scan events are only offered by Dynaframe via MQTT and are therefore not included.
+- Restarting only the Dynaframe app, shutting the device down and changing the sync role
+  are not included.
+- **NFC:** As soon as an NFC reader is registered on a frame (DynaFrame → NFC), the
+  integration asks that frame once a second for a new scan – frames without a reader are not
+  asked. Every scan is passed on as a Home Assistant tag scan: the tag appears under
+  *Settings → Tags*, and automations use the trigger **Tag → Tag scanned** (optionally only for
+  this frame). A newly registered reader is picked up within 5 minutes or after reloading the
+  integration; scans made while Home Assistant was down are not replayed.
 - File paths and stream URLs of the current item are intentionally not exposed, as stream
   URLs can contain camera credentials.
 - If the card does not appear in the Companion app after an update, reset the app's
@@ -181,6 +188,13 @@ braucht Home Assistant einen Sensor mit den Gesamt-Downloads (YAML siehe
 [oben](#store-downloads-card)), weil GitHub nur Gesamtzahlen liefert.
 
 **Passendes Theme:** Das Theme „Dynaframe“ aus [Archonw Themes](https://github.com/Archonw/ha-themes) lässt dein Dashboard wie die Dynaframe-Oberfläche aussehen.
+
+**NFC-Tags:** Ist an einem Frame ein NFC-Reader registriert (DynaFrame → NFC), fragt die
+Integration diesen Frame jede Sekunde nach einem neuen Scan, Frames ohne Reader werden nicht
+gefragt. Jeder Scan wird zu einem normalen Home-Assistant-Tag: Er erscheint unter
+*Einstellungen → Tags*, und Automationen nutzen den Auslöser **Tag → Tag gescannt** (auf Wunsch
+nur für diesen Frame). So lassen sich mit einem Reader am Frame beliebige Automationen auslösen,
+zum Beispiel alle Frames an- oder ausschalten.
 
 **Automatisch hinzufügen:** In den Optionen der Integration lässt sich einschalten, dass neu
 gefundene Frames ohne Bestätigung eingerichtet werden.
