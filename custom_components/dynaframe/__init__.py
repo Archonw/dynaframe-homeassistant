@@ -28,6 +28,7 @@ from .const import (
     STORE_CARD_URL,
 )
 from .coordinator import DynaframeCoordinator
+from .nfc import NfcScanWatcher
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -75,6 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DynaframeConfigEntry) ->
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(NfcScanWatcher(hass, coordinator).async_start())
 
     offered: set[str] = set()
 

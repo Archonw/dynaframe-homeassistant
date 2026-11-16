@@ -8,7 +8,8 @@
   "dependencies": [
     "frontend",
     "http",
-    "network"
+    "network",
+    "tag"
   ],
   "dhcp": [
     {
@@ -20,7 +21,7 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Archonw/dynaframe-homeassistant/issues",
   "requirements": [],
-  "version": "1.5.0",
+  "version": "1.6.0",
   "zeroconf": [
     {
       "type": "_device-info._tcp.local.",
